@@ -1,0 +1,87 @@
+name: ci
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-gcc,         os: ubuntu-latest, cc: gcc,   cxx: g++, cmake_args: "-DUSE_OPENMP=ON" }
+          - { name: linux-clang,       os: ubuntu-latest, cc: clang, cxx: clang++, cmake_args: "-DUSE_OPENMP=OFF" }
+          - { name: linux-no-openmp,   os: ubuntu-latest, cc: gcc,   cxx: g++, cmake_args: "-DUSE_OPENMP=OFF" }
+          - { name: macos-apple-clang, os: macos-latest, cmake_args: "-DUSE_OPENMP=ON" }
+          - { name: windows-msvc,      os: windows-latest, cmake_args: "-DUSE_OPENMP=OFF" }
+    defaults:
+      run:
+        shell: bash
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+      OMP_WAIT_POLICY: PASSIVE
+      KMP_BLOCKTIME: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: libomp (macOS)
+        if: runner.os == 'macOS'
+        run: brew install libomp
+      - name: Python dependencies
+        run: pip install -r requirements-test.txt cmake build
+      - name: Configure
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_NATIVE=OFF -DMIXDEX_BUILD_TESTS=ON \
+                -Dpybind11_DIR="$(python -m pybind11 --cmakedir)" ${{ matrix.cmake_args }}
+      - name: Build
+        run: cmake --build build --config Release -j 4
+      - name: C++ tests
+        run: ctest --test-dir build -C Release --output-on-failure --timeout 300
+      - name: Python tests
+        run: |
+          export MIXDEX_BUILD_DIR=build
+          python -m pytest -q
+      - name: Installed C++ consumer
+        run: |
+          cmake --install build --config Release --prefix "$PWD/installed-cpp" --component CppDevelopment
+          cmake -S tests/install -B consumer -DCMAKE_PREFIX_PATH="$PWD/installed-cpp"
+          cmake --build consumer --config Release -j 4
+          ctest --test-dir consumer -C Release --output-on-failure
+      - name: Build wheel from source archive
+        run: python -m build
+      - name: Installed wheel smoke test
+        run: |
+          python -m pip install --no-deps --target installed-python dist/*.whl
+          PYTHONPATH="$PWD/installed-python" python tests/install/wheel_smoke.py
+
+  # C++ ThreadSanitizer checks use Clang, libomp and Archer; Python is not instrumented.
+  tsan:
+    name: linux-clang-tsan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: sudo apt-get update && sudo apt-get install -y clang libomp-dev
+      - run: pip install pybind11 numpy cmake
+      - name: Configure and build
+        env: { CC: clang, CXX: clang++ }
+        run: |
+          cmake -S . -B build-tsan -DMIXDEX_BUILD_PYTHON=OFF -DUSE_OPENMP=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_NATIVE=OFF -DMIXDEX_BUILD_TESTS=ON \
+                -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer -O1 -g" \
+                -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread" \
+                -Dpybind11_DIR="$(python -m pybind11 --cmakedir)"
+          cmake --build build-tsan -j 4
+      - name: ctest under ThreadSanitizer
+        run: |
+          ARCHER="$(find /usr/lib -name libarcher.so | head -n 1)"
+          test -n "$ARCHER" || { echo "Archer runtime not found"; exit 1; }
+          echo "Archer: $ARCHER"
+          OMP_NUM_THREADS=4 OMP_TOOL_LIBRARIES="$ARCHER" \
+          TSAN_OPTIONS="ignore_noninstrumented_modules=1" \
+            ctest --test-dir build-tsan --output-on-failure --timeout 600

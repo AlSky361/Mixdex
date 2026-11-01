@@ -1,0 +1,57 @@
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 100
+AccessModifierOffset: -4
+
+NamespaceIndentation: None
+
+AlignConsecutiveDeclarations: None
+AlignConsecutiveAssignments: None
+AlignAfterOpenBracket: Align
+
+BinPackArguments: false
+BinPackParameters: false
+
+DisableFormat: false
+
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: Empty
+
+BreakBeforeBraces: Attach
+SpaceInEmptyBlock: false
+
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<.*>$'
+    Priority: 1
+  - Regex: '^".*"$'
+    Priority: 2
+
+Cpp11BracedListStyle: true
+
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: true
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpacesInAngles: false
+
+AllowAllConstructorInitializersOnNextLine: true
+BreakConstructorInitializers: AfterColon
+ConstructorInitializerIndentWidth: 4
+
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+
+AlignConsecutiveMacros: None
+AlignEscapedNewlines: Right
+
+AlwaysBreakAfterReturnType: None
+AlwaysBreakAfterDefinitionReturnType: None
+PenaltyReturnTypeOnItsOwnLine: 1000
+
+IndentCaseLabels: true

@@ -1,0 +1,48 @@
+# Build outputs
+build/
+cmake-build-*/
+
+# --- Doxygen ---
+docs/html/
+docs/latex/
+
+# --- Python ---
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Compiled binaries
+*.so
+*.dylib
+*.dll
+*.o
+*.a
+
+# --- macOS ---
+.DS_Store
+__MACOSX/
+
+# --- Xcode ---
+xcuserdata/
+*.xcuserstate
+DerivedData/
+
+# --- IDE ---
+.vscode/
+.idea/
+
+# Editor and system files
+*.swp
+
+*.pyd
+*.obj
+*.lib
+*.exe
+*.pdb
+CMakeUserPresets.json
+
+dist/
+.venv/
+installed-*/
+consumer/

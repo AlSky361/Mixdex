@@ -1,0 +1,22 @@
+[build-system]
+requires = ["scikit-build-core>=0.11", "pybind11>=3.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "mixdex"
+version = "0.1.0"
+description = "Exact mixed-data search and density algorithms with catalog snapshots"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24"]
+
+[tool.scikit-build]
+wheel.packages = []
+ninja.make-fallback = true
+install.components = ["PythonRuntime"]
+sdist.exclude = ["build", ".git", "**/__pycache__"]
+
+[tool.scikit-build.cmake.define]
+USE_NATIVE = "OFF"
+USE_OPENMP = "OFF"
+MIXDEX_BUILD_TESTS = "OFF"
