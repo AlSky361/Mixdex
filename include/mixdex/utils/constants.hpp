@@ -58,13 +58,14 @@ inline constexpr int kTreeNodesReserveSlack = 4;  // Extra reserved nodes.
 constexpr int kDefaultLeafSize = 40;  // Default leaf capacity for indexed search.
 
 // Approximate comparisons use project tolerances, not exact or bitwise equality.
-constexpr bool f_equal(double a, double b, double rel_eps = kEpsEq, double abs_eps = kEpsZero) {
+// C++20 does not guarantee constexpr std::fabs; keep header definitions inline.
+inline bool f_equal(double a, double b, double rel_eps = kEpsEq, double abs_eps = kEpsZero) {
     double diff = std::fabs(a - b);
     double scale = std::max(std::fabs(a), std::fabs(b));
     return diff <= std::max(rel_eps * scale, abs_eps);
 }
 
-constexpr bool f_zero(double a, double eps = kEpsZero) {
+inline bool f_zero(double a, double eps = kEpsZero) {
     return std::fabs(a) <= eps;
 }
 
