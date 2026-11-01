@@ -4,8 +4,10 @@ C++ and Python tools for exact neighbor search and density-based analysis of
 mixed data. The Python catalog API adds stable IDs, query filters, logical
 removal, snapshot persistence and replacement.
 
-This is a pre-release source tree. macOS, Windows and Linux build jobs are
-provided; a configured job is not evidence that its platform has passed.
+This is a pre-release source tree. CI has passed on macOS, Windows (MSVC)
+and Linux, including source builds, tests and installed-wheel checks.
+See [CI runs](https://github.com/AlSky361/Mixdex/actions/workflows/ci.yml)
+for the result of each revision.
 
 ## Distance
 
@@ -133,5 +135,4 @@ for the standalone Imputer and fully missing column behavior.
 Tests cover exact search, bounds, weights, preprocessing, density algorithms
 and snapshots. Build outputs and editor caches are excluded from version control.
 
-License selection remains open at the author's request. Windows execution and
-final publication review are still pending.
+License selection remains open at the author's request.
