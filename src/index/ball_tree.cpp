@@ -1,3 +1,4 @@
+// Method references: docs/references.md#spanning-trees-and-dual-tree-search
 #include "mixdex/index/ball_tree/ball_tree.hpp"
 
 #include <algorithm>

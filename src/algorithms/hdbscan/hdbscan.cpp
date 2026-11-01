@@ -1,3 +1,4 @@
+// Method references: docs/references.md#density-clustering
 #include "mixdex/algorithms/hdbscan/hdbscan.hpp"
 
 #include <algorithm>

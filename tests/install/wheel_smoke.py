@@ -1,13 +1,24 @@
 """Exercise installed native and catalog modules without the source build path."""
 import tempfile
 from pathlib import Path
-from importlib.metadata import version
+from importlib.metadata import distribution, version
 
 import mixdex
 from mixdex_catalog import CatalogSnapshot
 from mixdex_preprocessing import Imputer
 
 assert version('mixdex') == '0.1.0'
+dist = distribution('mixdex')
+assert dist.metadata['License-Expression'] == 'BSD-3-Clause'
+license_paths = {str(p): p for p in dist.files if '.dist-info/licenses/' in str(p)}
+for suffix, notice in (
+    ('/LICENSE', 'Aleksandr'),
+    ('/LICENSES/pybind11.txt', 'Wenzel Jakob'),
+    ('/THIRD_PARTY_NOTICES.md', 'pybind11'),
+):
+    matches = [p for name, p in license_paths.items() if name.endswith(suffix)]
+    assert len(matches) == 1, f'missing or duplicate license file: {suffix}'
+    assert notice in dist.locate_file(matches[0]).read_text()
 snapshot = CatalogSnapshot.build(
     [1, 2, 3], categorical=[[['a']], [['a', 'b']], [[]]], categorical_set_columns=[0],
 )

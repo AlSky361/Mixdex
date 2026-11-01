@@ -11,7 +11,8 @@ use fixed positive scales. Define
 
 J(A,B)=|A symmetric_difference B|/|A union B|, with J(empty,empty)=0.
 Jaccard is a metric on finite sets; see
-https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.jaccard.html
+[Kosub, 2016](https://arxiv.org/abs/1612.02696v1) and the
+[method references](references.md#distance-and-preprocessing).
 Each component obeys the triangle inequality. Multiplication by positive weights,
 addition and division by fixed W preserve it. Zero distance identifies equal
 representations; separate record IDs need not be distinct points.

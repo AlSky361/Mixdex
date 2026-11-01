@@ -1,3 +1,4 @@
+// Method references: docs/references.md#density-clustering
 #include "mixdex/algorithms/dbscan/dbscan.hpp"
 
 #include <stdexcept>

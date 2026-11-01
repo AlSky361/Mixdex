@@ -1,3 +1,4 @@
+// Method references: docs/references.md#spanning-trees-and-dual-tree-search
 #include "mixdex/mst/dt_boruvka.hpp"
 
 #include <algorithm>

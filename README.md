@@ -135,4 +135,9 @@ for the standalone Imputer and fully missing column behavior.
 Tests cover exact search, bounds, weights, preprocessing, density algorithms
 and snapshots. Build outputs and editor caches are excluded from version control.
 
-License selection remains open at the author's request.
+## References and license
+
+See [scientific references](docs/references.md) for method authors and
+implementation-specific differences. Mixdex is licensed under
+[BSD 3-Clause](LICENSE). Third-party notices are in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

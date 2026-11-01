@@ -1,3 +1,4 @@
+// Method references: docs/references.md#outliers-and-classification
 #include "mixdex/algorithms/outlier/knn_outlier.hpp"
 
 #include <stdexcept>

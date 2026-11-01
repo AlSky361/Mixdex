@@ -72,6 +72,11 @@ target_link_libraries(mixdex_lib PUBLIC Threads::Threads)
 target_compile_features(mixdex_lib PUBLIC cxx_std_20)
 set_target_properties(mixdex_lib PROPERTIES EXPORT_NAME mixdex)
 include(GNUInstallDirs)
+install(FILES LICENSE THIRD_PARTY_NOTICES.md
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/mixdex COMPONENT CppDevelopment)
+install(DIRECTORY LICENSES/
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/mixdex/LICENSES COMPONENT CppDevelopment
+    FILES_MATCHING PATTERN "*.txt")
 include(CMakePackageConfigHelpers)
 install(TARGETS mixdex_lib EXPORT mixdexTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT CppDevelopment)
