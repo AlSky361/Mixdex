@@ -60,7 +60,7 @@ public:
     }
 
     int n_features() const noexcept {
-        return offsets_.empty() ? 0 : static_cast<int>(offsets_.size()) - 1;
+        return offsets_.empty() ? 0 : static_cast<int>(offsets_.size() - 1);
     }
 
     bool empty() const noexcept {

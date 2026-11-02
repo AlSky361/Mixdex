@@ -13,8 +13,7 @@ using namespace mixdex::constants;
 namespace mixdex {
 
 ScaleParams fit_scale_params(std::span<const double> values, NumericType type) {
-    int n = static_cast<int>(values.size());
-    if (n == 0) {
+    if (values.empty()) {
         throw std::invalid_argument("scale_feature: пустой признак");
     }
 

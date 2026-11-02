@@ -9,6 +9,9 @@ and Linux, including source builds, tests and installed-wheel checks.
 See [CI runs](https://github.com/AlSky361/Mixdex/actions/workflows/ci.yml)
 for the result of each revision.
 
+Numeric ranges and sentinel rules are described in
+[numeric contracts](docs/numeric-contracts.md).
+
 ## Distance
 
 The ordinary distance combines numeric L1, categorical Hamming and set Jaccard:

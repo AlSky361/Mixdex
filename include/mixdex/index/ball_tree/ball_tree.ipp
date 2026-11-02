@@ -7,6 +7,7 @@
 #include "mixdex/distance.hpp"
 #include "mixdex/index/ball_tree/ball_tree.hpp"
 #include "mixdex/utils/aliases.hpp"
+#include "mixdex/utils/checked_arithmetic.hpp"
 
 namespace mixdex {
 
@@ -57,7 +58,7 @@ inline void BallTree::knn_search(int node_idx,
             continue;
 
         if (knn_profile_enabled())
-            g_knn_nodes_visited.fetch_add(1, std::memory_order_relaxed);
+            detail::increment_count(g_knn_nodes_visited);
 
         int ni = entry.node_idx;
         const Node& node = nodes()[ni];

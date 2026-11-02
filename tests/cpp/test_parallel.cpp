@@ -73,14 +73,18 @@ int main() {
     check_schedule<Schedule::Dynamic>();
     check_schedule<Schedule::Guided>();
 
-    // Empty and negative ranges must not invoke the callback.
+    // Empty ranges do no work; negative counts are invalid.
     bool called = false;
     parallel_for(0, [&](int) {
         called = true;
     });
-    parallel_for(-5, [&](int) {
-        called = true;
-    });
+    bool negative = false;
+    try {
+        parallel_for(-5, [&](int) { called = true; });
+    } catch (const std::invalid_argument&) {
+        negative = true;
+    }
+    CHECK(negative);
     CHECK(!called);
 
     // Propagate other exception types and stop unnecessary work.

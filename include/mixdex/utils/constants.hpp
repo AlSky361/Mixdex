@@ -60,6 +60,10 @@ constexpr int kDefaultLeafSize = 40;  // Default leaf capacity for indexed searc
 // Approximate comparisons use project tolerances, not exact or bitwise equality.
 // C++20 does not guarantee constexpr std::fabs; keep header definitions inline.
 inline bool f_equal(double a, double b, double rel_eps = kEpsEq, double abs_eps = kEpsZero) {
+    if (a == b)
+        return true;
+    if (!std::isfinite(a) || !std::isfinite(b))
+        return false;
     double diff = std::fabs(a - b);
     double scale = std::max(std::fabs(a), std::fabs(b));
     return diff <= std::max(rel_eps * scale, abs_eps);

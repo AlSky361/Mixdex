@@ -110,7 +110,7 @@ void slow_path(CondTreeState& st, const StepInfo& step, const ClusterPoints& clu
             cl_members[cl_id - n] = std::move(alive[0]->pts);
         } else {
             for (auto* cinfo : alive) {
-                int new_id = next_cl++;
+                int new_id = allocate_cluster_id(next_cl);
                 rows.push_back({cl_id, new_id, lambda, cinfo->size});
                 lambda_birth.push_back(lambda);
 

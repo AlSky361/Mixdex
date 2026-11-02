@@ -14,19 +14,19 @@ namespace mixdex {
 class BallTree : public MutualReachabilitySearch {
 public:
     struct Node {
-        int center_idx{-1};
+        int center_idx{kInvalidIdx};
 
         double radius_num{0.0};  // Numeric contribution, normalized by total feature weight.
 
-        int left{-1};
-        int right{-1};
+        int left{kInvalidIdx};
+        int right{kInvalidIdx};
         int low{0};   // First row position in indices_.
         int high{0};  // Exclusive end position in indices_.
 
         NodeCatPresent cat_present;
 
         bool is_leaf() const noexcept {
-            return left == -1 && right == -1;
+            return left == kInvalidIdx && right == kInvalidIdx;
         }
     };
 

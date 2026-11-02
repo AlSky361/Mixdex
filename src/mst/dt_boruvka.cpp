@@ -3,6 +3,11 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cinttypes>
+#include <limits>
+#include <stdexcept>
+
+#include "mixdex/utils/checked_arithmetic.hpp"
 #include <mutex>
 #include <numeric>
 #include <tuple>
@@ -31,20 +36,31 @@ struct ThreadCounters {
     Count leaf_pairs{0};
     Count metric_calls{0};
     Count fast_skipped{0};
+    bool overflow{false};
+
+    // Report after the task region; exceptions must not escape OpenMP tasks.
+    void increment(Count& value) noexcept {
+        if (value == std::numeric_limits<Count>::max())
+            overflow = true;
+        else
+            ++value;
+    }
 };
 
 using CounterPool = PerThread<ThreadCounters>;
 
-static ThreadCounters total_counters(const CounterPool& pool) noexcept {
+static ThreadCounters total_counters(const CounterPool& pool) {
     ThreadCounters t;
     for (int i = 0; i < pool.threads(); ++i) {
         const ThreadCounters& c = pool.slot(i);
-        t.total_calls += c.total_calls;
-        t.pruned_calls += c.pruned_calls;
-        t.zero_lb_calls += c.zero_lb_calls;
-        t.leaf_pairs += c.leaf_pairs;
-        t.metric_calls += c.metric_calls;
-        t.fast_skipped += c.fast_skipped;
+        if (c.overflow)
+            throw std::overflow_error("counter overflow");
+        detail::add_count(t.total_calls, c.total_calls);
+        detail::add_count(t.pruned_calls, c.pruned_calls);
+        detail::add_count(t.zero_lb_calls, c.zero_lb_calls);
+        detail::add_count(t.leaf_pairs, c.leaf_pairs);
+        detail::add_count(t.metric_calls, c.metric_calls);
+        detail::add_count(t.fast_skipped, c.fast_skipped);
     }
     return t;
 }
@@ -208,7 +224,7 @@ static void process_leaf_pair(int qnode_idx, int rnode_idx, DTBState& state, boo
     const int rsz = rnode.high - rnode.low;
 
     ThreadCounters& cnt = state.counters.local();
-    ++cnt.leaf_pairs;
+    cnt.increment(cnt.leaf_pairs);
 
     for (int qi = 0; qi < qsz; ++qi) {
         int q = indices[qnode.low + qi];
@@ -228,11 +244,11 @@ static void process_leaf_pair(int qnode_idx, int rnode_idx, DTBState& state, boo
 
             double lb_fast = std::max(cdq, cd[r]);
             if (!state.may_improve(lb_fast, thr) && !state.may_improve(lb_fast, thr_r)) {
-                ++cnt.fast_skipped;
+                cnt.increment(cnt.fast_skipped);
                 continue;
             }
 
-            ++cnt.metric_calls;
+            cnt.increment(cnt.metric_calls);
             double w = tree.call_metric(q, r);
             if (state.may_improve(w, thr) || state.may_improve(w, thr_r)) {
                 state.try_update(q, r, w);
@@ -252,15 +268,15 @@ static void dtb_recurse(
     const BallTree::Node& rnode = nodes[rnode_idx];
 
     ThreadCounters& cnt = state.counters.local();
-    ++cnt.total_calls;
+    cnt.increment(cnt.total_calls);
 
     double lb = tree.lower_bound_mreach_node(qnode_idx, rnode_idx);
 
     if (lb < kZeroLbEps)
-        ++cnt.zero_lb_calls;
+        cnt.increment(cnt.zero_lb_calls);
 
     if (state.can_prune(qnode.low, qnode.high, rnode.low, rnode.high, lb)) {
-        ++cnt.pruned_calls;
+        cnt.increment(cnt.pruned_calls);
         return;
     }
 
@@ -380,15 +396,16 @@ std::vector<Edge> dual_tree_boruvka(const BallTree& tree, bool deterministic) {
     while (static_cast<int>(mst_edges.size()) < n - 1) {
         const Count calls_before = total_counters(state.counters).total_calls;
         boruvka_iteration(state);
+        (void)total_counters(state.counters);
         int added = state.merge_and_collect(mst_edges);
 
         if constexpr (debug::DTB_VERBOSE) {
             const ThreadCounters c = total_counters(state.counters);
             printf(
                 "[DTBoruvka] iter=%d  added=%d  mst=%d/%d  "
-                "calls=%lld  pruned=%lld (%.1f%%)  "
-                "zero_lb=%lld (%.1f%%)  "
-                "leaf_pairs=%lld  metric_calls=%lld  fast_skipped=%lld\n",
+                "calls=%" PRIu64 "  pruned=%" PRIu64 " (%.1f%%)  "
+                "zero_lb=%" PRIu64 " (%.1f%%)  "
+                "leaf_pairs=%" PRIu64 "  metric_calls=%" PRIu64 "  fast_skipped=%" PRIu64 "\n",
                 iteration,
                 added,
                 static_cast<int>(mst_edges.size()),
@@ -428,6 +445,7 @@ DTBoruvkaResult dual_tree_boruvka_with_stats(const BallTree& tree, bool determin
     int iteration = 0;
     while (static_cast<int>(result.edges.size()) < n - 1) {
         boruvka_iteration(state);
+        (void)total_counters(state.counters);
         int added = state.merge_and_collect(result.edges);
         if (added == 0)
             break;

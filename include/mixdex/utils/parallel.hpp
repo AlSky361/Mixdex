@@ -54,12 +54,16 @@ private:
 }  // namespace detail
 
 // Run [0, n) with signed callback indices; propagate worker exceptions after the loop.
-// Negative counts are empty; counts outside the signed index range throw.
+// Negative counts and counts outside the signed index range throw.
 template <Schedule S = Schedule::Dynamic, class N, class F>
 void parallel_for(N n, F&& f) {
     static_assert(std::is_integral_v<N> && !std::is_same_v<N, bool>,
                   "parallel_for requires an integer count other than bool");
     using I = std::common_type_t<int, std::make_signed_t<N>>;  // Widen small counters.
+    if constexpr (std::is_signed_v<N>) {
+        if (n < 0)
+            throw std::invalid_argument("parallel_for count must be nonnegative");
+    }
     if (!std::in_range<I>(+n))
         throw std::length_error("parallel_for count exceeds the signed index range");
     const I count = static_cast<I>(n);
@@ -88,7 +92,9 @@ void parallel_for(N n, F&& f) {
 
 // Partition boundary: total >= 0, parts > 0, and 0 <= part <= parts.
 // Widen the product before division to avoid overflow in the index type.
-inline Idx chunk_begin(Idx total, int parts, int part) noexcept {
+inline Idx chunk_begin(Idx total, int parts, int part) {
+    if (total < 0 || parts <= 0 || part < 0 || part > parts)
+        throw std::invalid_argument("invalid partition bounds");
     return static_cast<Idx>(static_cast<Count>(total) * part / parts);
 }
 

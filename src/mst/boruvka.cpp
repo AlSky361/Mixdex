@@ -1,6 +1,10 @@
 #include "mixdex/mst/boruvka.hpp"
 
 #include <algorithm>
+#include <cmath>
+#include <stdexcept>
+
+#include "mixdex/utils/checked_arithmetic.hpp"
 #include <limits>
 #include <queue>
 #include <tuple>
@@ -28,10 +32,17 @@ bool better_candidate(const Edge& incumbent, const Edge& candidate) {
 }  // namespace
 
 std::vector<Edge> boruvka(const std::vector<Edge>& edges, int n) {
+    if (n < 0)
+        throw std::invalid_argument("vertex count must be nonnegative");
+    const Idx m = detail::checked_index_size(edges.size());
+    for (const auto& e : edges) {
+        if (e.u < 0 || e.u >= n || e.v < 0 || e.v >= n)
+            throw std::invalid_argument("edge vertex out of range");
+        if (std::isnan(e.w))
+            throw std::invalid_argument("edge weight must not be NaN");
+    }
     if (n == 0)
         return {};
-
-    const int m = static_cast<int>(edges.size());
 
     UF uf(n);
     std::vector<Edge> mst;

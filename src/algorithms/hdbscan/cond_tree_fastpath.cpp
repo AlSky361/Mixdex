@@ -250,13 +250,13 @@ bool try_fast_path(CondTreeState& st,
                     big_pts.push_back(p);
             }
 
-            int small_id = next_cl++;
+            int small_id = allocate_cluster_id(next_cl);
             rows.push_back({fast_path_cl_id, small_id, lambda, small_size});
             lambda_birth.push_back(lambda);
             cl_members.push_back(fp_small_side);
             for (int p : cl_members.back()) cluster[p] = small_id;
 
-            int big_id = next_cl++;
+            int big_id = allocate_cluster_id(next_cl);
             rows.push_back({fast_path_cl_id, big_id, lambda, big_size});
             lambda_birth.push_back(lambda);
             cl_members.push_back(std::move(big_pts));

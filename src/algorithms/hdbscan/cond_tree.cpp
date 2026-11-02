@@ -2,6 +2,11 @@
 #include "mixdex/algorithms/hdbscan/cond_tree.hpp"
 
 #include <cassert>
+#include <cmath>
+#include <limits>
+#include <stdexcept>
+
+#include "mixdex/utils/checked_arithmetic.hpp"
 #include <numeric>
 #include <unordered_map>
 #include <unordered_set>
@@ -120,6 +125,22 @@ void build_condensed_tree(const std::vector<Edge>& reversed_MSText,
                           std::vector<double>& lambda_birth,
                           int& next_cl,
                           std::vector<int>& final_cluster) {
+    if (n < 0 || min_cluster_size < 1)
+        throw std::invalid_argument("invalid condensed-tree size");
+    if (n == std::numeric_limits<int>::max())
+        throw std::length_error("no room for cluster IDs");
+    if (core.size() != static_cast<std::size_t>(n))
+        throw std::invalid_argument("core distance count must match vertex count");
+    for (double value : core)
+        if (!std::isfinite(value) || value < 0)
+            throw std::invalid_argument("core distances must be finite and nonnegative");
+    detail::checked_index_size(reversed_MSText.size());
+    for (const auto& e : reversed_MSText) {
+        if (e.u < 0 || e.u >= n || e.v < 0 || e.v >= n)
+            throw std::invalid_argument("edge vertex out of range");
+        if (std::isnan(e.w) || e.w < 0)
+            throw std::invalid_argument("distance must be nonnegative and not NaN");
+    }
     rows.clear();
     lambda_birth.clear();
     next_cl = n + 1;

@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "mixdex/utils/constants.hpp"
+#include "mixdex/utils/checked_arithmetic.hpp"
 
 namespace mixdex {
 
@@ -33,7 +34,7 @@ bool CategorySet::intersects(const CategorySet& other) const noexcept {
 }
 
 void NodeCatPresent::build(const Dataset& data, const std::vector<int>& idx, int low, int high) {
-    if (low < 0 || high > static_cast<int>(idx.size()) || low > high) {
+    if (low < 0 || high < 0 || static_cast<std::size_t>(high) > idx.size() || low > high) {
         throw std::invalid_argument("NodeCatPresent::build: некорректный диапазон индексов");
     }
 
@@ -118,7 +119,7 @@ Dataset::Dataset(const std::vector<NumFeature>& num_features,
     num_types_.reserve(n_num_);
     feat_names_.reserve(n_num_ + n_cat_);
 
-    num_data_.assign(static_cast<size_t>(n_) * n_num_, 0.0);
+    num_data_.assign(detail::checked_size_product(n_, n_num_), 0.0);
     for (std::size_t k = 0; k < n_num_; ++k) {
         const auto& f = num_features[k];
 
@@ -135,7 +136,7 @@ Dataset::Dataset(const std::vector<NumFeature>& num_features,
         }
     }
 
-    cat_data_.assign(static_cast<size_t>(n_) * n_cat_, 0);
+    cat_data_.assign(detail::checked_size_product(n_, n_cat_), 0);
     for (std::size_t k = 0; k < n_cat_; ++k) {
         const auto& f = cat_features[k];
 

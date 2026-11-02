@@ -3,6 +3,8 @@
 #pragma once
 #include <cstddef>
 #include <map>
+#include <limits>
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -36,6 +38,13 @@ struct CondTreeState {
     int& next_cl;
     std::vector<char>& shed;  // A shed point already has its output row.
 };
+
+// Keep the one-past cluster ID representable too.
+inline int allocate_cluster_id(int& next) {
+    if (next < 0 || next == std::numeric_limits<int>::max())
+        throw std::length_error("cluster ID range exhausted");
+    return next++;
+}
 
 // Equal-weight edges [i, j), with lambda = 1/w.
 struct StepInfo {

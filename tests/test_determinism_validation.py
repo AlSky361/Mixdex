@@ -230,3 +230,29 @@ def test_weights_are_respected_by_external_queries():
             order = sorted(range(120), key=lambda j: (D[i][j], j))[:5]
             assert [j for j, _ in nb] == order
             assert np.allclose([d for _, d in nb], D[i][order])
+
+
+@pytest.mark.parametrize("n", [-1, -2])
+def test_boruvka_edges_rejects_negative_vertex_count(n):
+    with pytest.raises(ValueError, match="nonnegative"):
+        mixdex.boruvka_edges([], n)
+
+
+@pytest.mark.parametrize("u,v", [(-1, 0), (0, -2), (2, 0)])
+def test_boruvka_edges_validates_vertices(u, v):
+    with pytest.raises(ValueError, match="out of range"):
+        mixdex.boruvka_edges([mixdex.Edge(u, v, 1.)], 2)
+
+
+def test_boruvka_edges_rejects_nan_and_accepts_negative_weights():
+    with pytest.raises(ValueError, match="NaN"):
+        mixdex.boruvka_edges([mixdex.Edge(0, 1, float("nan"))], 2)
+    assert mixdex.boruvka_edges([mixdex.Edge(0, 1, -2.)], 2)[0].w == -2.
+
+
+@pytest.mark.parametrize("n", [2**31, -(2**31)-1, 2**64])
+def test_binding_rejects_unrepresentable_sizes(n):
+    with pytest.raises((TypeError, OverflowError)):
+        mixdex.Graph(n)
+    with pytest.raises((TypeError, OverflowError)):
+        mixdex.boruvka_edges([], n)
