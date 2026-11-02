@@ -101,6 +101,13 @@ directory to PYTHONPATH to import both mixdex and mixdex_catalog in applications
 sources or delete another configuration. C++-only builds use
 `-DMIXDEX_BUILD_PYTHON=OFF` and do not require Python or pybind11.
 
+On macOS, `build.sh` explicitly selects the SDK from the active Xcode or Command
+Line Tools directory. It respects `DEVELOPER_DIR` and an explicit SDK path in
+`SDKROOT`, and prints the SDK used. This avoids mixing a newer standalone SDK
+with an older linker. The system-wide developer selection is not changed.
+To choose an SDK manually, run `SDKROOT=/path/to/MacOSX.sdk ./build.sh`.
+Direct CMake builds can use `-DCMAKE_OSX_SYSROOT=/path/to/MacOSX.sdk`.
+
 OpenMP is optional. For macOS install libomp and enable `USE_OPENMP`; for Linux
 use a compiler with the matching OpenMP runtime. MSVC task-based builds require
 an OpenMP implementation supporting tasks; start with the sequential build.
