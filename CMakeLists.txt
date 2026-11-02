@@ -29,6 +29,11 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_library(mixdex_lib STATIC
     src/types.cpp
+    src/data/categorical.cpp
+    src/data/dataset_validation.cpp
+    src/data/dataset_rows.cpp
+    src/data/dataset_columns.cpp
+    src/data/dataset_weights.cpp
     src/quantile.cpp
     src/scale.cpp
     src/distance.cpp
@@ -52,11 +57,15 @@ add_library(mixdex_lib STATIC
     src/algorithms/hdbscan/hdbscan.cpp
     
     src/index/ball_tree.cpp
+    src/index/node_categories.cpp
+    src/index/ball_tree_bounds.cpp
     src/index/factory.cpp
     src/index/index.cpp
     src/index/filtered.cpp
     
     src/mst/dt_boruvka.cpp
+    src/mst/dt_boruvka_state.cpp
+    src/mst/dt_boruvka_traversal.cpp
     src/mst/boruvka.cpp
     src/mst/mst_compare.cpp
 )

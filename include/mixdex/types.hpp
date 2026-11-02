@@ -241,6 +241,8 @@ private:
                       const PreprocessWarningHandler& on_warning);
     void check_limits() const;
     void check_structure() const;
+    void check_constant_columns() const;
+    void project_columns(std::span<const unsigned char> keep);
     // Strict rejects NaN/inf or negative codes; Clean marks affected rows.
     void scan_values(std::vector<Code>* cat_max,
                      DatasetPolicy policy,

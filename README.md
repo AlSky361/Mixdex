@@ -11,6 +11,7 @@ for the result of each revision.
 
 Numeric ranges and sentinel rules are described in
 [numeric contracts](docs/numeric-contracts.md).
+See [implementation layout](docs/code-layout.md) for the internal file responsibilities.
 
 ## Distance
 

@@ -45,7 +45,8 @@ Third-party code notices are separate: see [THIRD_PARTY_NOTICES.md](../THIRD_PAR
 - William B. March, Parikshit Ram, Alexander G. Gray (2010).
   *Fast Euclidean Minimum Spanning Tree: Algorithm, Analysis, and Applications*.
   KDD, 603–612. [Author manuscript](https://mlpack.org/papers/emst.pdf).
-  Reference for DualTreeBoruvka in `src/mst/dt_boruvka.cpp`.
+  Reference for DualTreeBoruvka in `src/mst/dt_boruvka.cpp` and
+  `src/mst/dt_boruvka_traversal.cpp`.
   The paper's Euclidean complexity analysis is not automatically an analysis of
   Mixdex's mixed-distance or mutual-reachability implementation. Component-local
   locking and deterministic tie handling are documented separately in
