@@ -123,6 +123,35 @@ The former `gower_*` name is historical; the current composite is defined in
 README.md and is not a claim to reproduce all missing-data conventions of Gower's
 original coefficient.
 
+## Row hashing
+
+- David Stafford (2011). *Better Bit Mixing - Improving on MurmurHash3's 64-bit
+  Finalizer*. [Author's parameter table](https://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html).
+  The Mix13 row specifies shifts 30, 27, 31 and multipliers
+  `0xbf58476d1ce4e5b9`, `0x94d049bb133111eb`.
+- Sebastiano Vigna (2015). *SplitMix64 reference implementation*.
+  [Author's source](https://prng.di.unimi.it/splitmix.c).
+  `mix64` in `src/data/dataset_rows.cpp` uses the same fixed increment and
+  output transformation as one step of that implementation. It is stateless
+  here: Mixdex combines coordinate bits into row hashes rather than maintaining
+  a pseudorandom generator. The source notice is preserved in
+  [LICENSES/splitmix64.txt](../LICENSES/splitmix64.txt).
+- Guy L. Steele Jr., Doug Lea, Christine H. Flood (2014).
+  *Fast Splittable Pseudorandom Number Generators*. OOPSLA, 453–472.
+  [Author copy](https://gee.cs.oswego.edu/dl/papers/oopsla14.pdf),
+  [DOI](https://doi.org/10.1145/2660193.2660195).
+  Background for SplitMix, the golden-ratio increment and Stafford Mix13.
+
+The increment `0x9e3779b97f4a7c15` is the odd integer closest to
+2^64 / phi, where phi = (1 + sqrt(5)) / 2. The two multipliers are odd and,
+together with the shifts, are the empirically evaluated Mix13 parameters.
+They are retained as a named algorithm's fixed constants, not retuned here.
+
+The unsigned arithmetic wraps modulo 2^64 intentionally. These constants are
+algorithm parameters, not dataset-dependent tolerances. Row hashes only group
+candidates: exact coordinate comparisons decide duplicates. A bijective mixer
+on single words does not make the variable-length row hash collision-free.
+
 ## Software and reproducibility
 
 [NumPy](https://github.com/numpy/numpy),

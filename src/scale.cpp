@@ -41,8 +41,7 @@ ScaleParams fit_scale_params(std::span<const double> values, NumericType type) {
     if (qs[0] == qs[6]) {
         throw std::invalid_argument(
             "fit_scale_params: признак константен (min == max); "
-            "такой признак должен быть исключён на этапе первичной предобработки "
-            "(см. §3.1), до масштабирования");
+            "исключите его перед масштабированием");
     }
     throw std::invalid_argument(
         "fit_scale_params: численно вырожденный масштаб: ширины IQR, IDR и max-min "

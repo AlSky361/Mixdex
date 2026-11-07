@@ -28,7 +28,8 @@ bool row_equal(const double* a_num,
     return true;
 }
 
-std::uint64_t mix64(std::uint64_t z) {  // splitmix64 finalizer.
+// SplitMix64 step (Stafford Mix13); docs/references.md#row-hashing.
+std::uint64_t mix64(std::uint64_t z) {
     z += 0x9e3779b97f4a7c15ULL;
     z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
     z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
@@ -98,7 +99,7 @@ void Dataset::check_duplicates(DatasetPolicy policy,
                         throw std::invalid_argument(
                             "Dataset: объекты-дубликаты (все координаты равны): строки " +
                             std::to_string(lo) + " и " + std::to_string(hi) +
-                            "; один из них должен быть исключён до кластеризации (см. §3.1)");
+                            "; режим Strict не допускает повторяющиеся строки");
                     }
                     // Keep the first original row and mark later duplicates.
                     if (rows_duplicate)

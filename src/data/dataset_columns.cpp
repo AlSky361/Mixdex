@@ -113,8 +113,7 @@ void Dataset::check_constant_columns() const {
         if (constant[k])
             throw std::invalid_argument("Dataset: константный признак '" + feat_names_[k] +
                                         "' (индекс " + std::to_string(k) +
-                                        "); такой признак должен быть исключён до "
-                                        "построения индексной структуры (см. §3.1)");
+                                        "); режим Strict не допускает константные признаки");
 }
 
 void Dataset::drop_constant_columns(DatasetPolicy policy) {

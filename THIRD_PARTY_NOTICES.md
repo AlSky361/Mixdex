@@ -14,6 +14,16 @@ Its copyright notice identifies Wenzel Jakob (2016). C++-only builds do not
 require pybind11. Builders selecting another version must check that version's
 notices, including any additional notices for incorporated components.
 
+## SplitMix64
+
+The row-hash helper `mix64` in `src/data/dataset_rows.cpp` uses the fixed
+increment and output transformation from Sebastiano Vigna's 2015 SplitMix64
+reference implementation. The source notice is preserved verbatim in
+[LICENSES/splitmix64.txt](LICENSES/splitmix64.txt).
+[Upstream source](https://prng.di.unimi.it/splitmix.c).
+Stafford Mix13 and the SplitMix publication are credited separately in
+[docs/references.md](docs/references.md#row-hashing).
+
 ## Separately installed dependencies
 
 NumPy is a Python runtime dependency; scikit-learn is used as a test reference.
