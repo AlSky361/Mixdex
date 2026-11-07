@@ -39,10 +39,6 @@ Dataset::Dataset(const std::vector<NumFeature>& num_features,
             "Dataset: признаки числового и категориального типов имеют разное количество строк");
     }
 
-    if (n_ == 0 && (n_num_ > 0 || n_cat_ > 0)) {
-        throw std::invalid_argument("Dataset: 0 строк, но есть признаки");
-    }
-
     feat_types_.reserve(n_num_ + n_cat_);
     num_types_.reserve(n_num_);
     feat_names_.reserve(n_num_ + n_cat_);

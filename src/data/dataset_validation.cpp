@@ -113,6 +113,9 @@ void Dataset::scan_values(std::vector<Code>* cat_max,
 void Dataset::validate_all(std::vector<Code>* cat_max,
                            DatasetPolicy policy,
                            const PreprocessWarningHandler& on_warning) {
+    if (policy != DatasetPolicy::Strict && policy != DatasetPolicy::Clean)
+        throw std::invalid_argument("invalid DatasetPolicy");
+
     check_limits();
     check_structure();
 

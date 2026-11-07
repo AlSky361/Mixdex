@@ -16,6 +16,17 @@ Changing signed statistics to unsigned statistics requires recompiling C++ clien
 - Noise labels, unlabeled training entries and automatic parameters have their
   own documented `-1` conventions. They are not row indices.
 
+Both Dataset constructors accept zero rows with a valid feature schema in
+`Strict` and `Clean`. Metadata is retained, coordinate buffers are empty, and
+categorical code counts are zero. No cleanup warnings are emitted for an
+initially empty dataset. Column views are empty and do not offset an empty
+buffer. There are no valid row indices. A malformed empty schema is still
+rejected; this storage contract does not make an empty dataset valid input to
+every algorithm or to fitting a Scaler.
+
+Only `DatasetPolicy::Strict` and `DatasetPolicy::Clean` are accepted. Other
+underlying enum values throw `std::invalid_argument` before cleanup or warnings.
+
 Dataset row and feature counts must fit the signed index range. Buffer products,
 edge counts and cluster IDs have separate limits; a valid row count alone does
 not establish that a derived structure fits. Checked narrowing throws

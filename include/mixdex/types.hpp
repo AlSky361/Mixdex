@@ -16,6 +16,7 @@ enum class NumericType { Continuous, Discrete };
 enum class FeatureType { Numeric, Categorical, CategoricalSet };
 
 // Strict rejects missing values, duplicate rows and constants; Clean removes them.
+// Both preserve a valid schema with zero rows.
 enum class DatasetPolicy { Strict, Clean };
 
 class Dataset;
@@ -156,15 +157,17 @@ public:
 
     /// Borrow a numeric column; the view expires when storage changes.
     StridedSpan<double> col_num_span(int k) const noexcept {
-        return StridedSpan<double>(num_data_.data() + static_cast<std::size_t>(k),
-                                   static_cast<std::size_t>(n_num()),
-                                   static_cast<std::size_t>(n_rows()));
+        return StridedSpan<double>(
+            n_ == 0 ? num_data_.data() : num_data_.data() + static_cast<std::size_t>(k),
+            static_cast<std::size_t>(n_num()),
+            static_cast<std::size_t>(n_rows()));
     }
     /// Borrow a categorical column; the view expires when storage changes.
     StridedSpan<int> col_cat_span(int k) const noexcept {
-        return StridedSpan<int>(cat_data_.data() + static_cast<std::size_t>(k),
-                                static_cast<std::size_t>(n_cat()),
-                                static_cast<std::size_t>(n_rows()));
+        return StridedSpan<int>(
+            n_ == 0 ? cat_data_.data() : cat_data_.data() + static_cast<std::size_t>(k),
+            static_cast<std::size_t>(n_cat()),
+            static_cast<std::size_t>(n_rows()));
     }
 
     std::size_t categories_size(int k) const noexcept {
