@@ -62,26 +62,49 @@ jobs:
   # C++ ThreadSanitizer checks use Clang, libomp and Archer; Python is not instrumented.
   tsan:
     name: linux-clang-tsan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    env:
+      CC: clang-19
+      CXX: clang++-19
+      OMP_WAIT_POLICY: PASSIVE
+      KMP_BLOCKTIME: "0"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - run: sudo apt-get update && sudo apt-get install -y clang libomp-dev
-      - run: pip install pybind11 numpy cmake
+      - run: sudo apt-get update && sudo apt-get install -y clang-19 llvm-19 libclang-rt-19-dev cmake curl xz-utils python3
+      - name: OpenMP runtime for ThreadSanitizer
+        run: |
+          runtime_dir="$RUNNER_TEMP/mixdex-tsan-openmp"
+          bash .github/scripts/build_tsan_openmp.sh "$runtime_dir"
+          echo "MIXDEX_TSAN_OPENMP_ROOT=$runtime_dir/install" >> "$GITHUB_ENV"
       - name: Configure and build
-        env: { CC: clang, CXX: clang++ }
         run: |
           cmake -S . -B build-tsan -DMIXDEX_BUILD_PYTHON=OFF -DUSE_OPENMP=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_NATIVE=OFF -DMIXDEX_BUILD_TESTS=ON \
                 -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer -O1 -g" \
                 -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread" \
-                -Dpybind11_DIR="$(python -m pybind11 --cmakedir)"
+                -DOpenMP_CXX_FLAGS="-fopenmp -I$MIXDEX_TSAN_OPENMP_ROOT/include" \
+                -DOpenMP_CXX_LIB_NAMES=omp \
+                -DOpenMP_omp_LIBRARY="$MIXDEX_TSAN_OPENMP_ROOT/lib/libomp.so" \
+                -DCMAKE_BUILD_RPATH="$MIXDEX_TSAN_OPENMP_ROOT/lib"
           cmake --build build-tsan -j 4
-      - name: ctest under ThreadSanitizer
+          "$CXX" -std=c++20 -O1 -g -fsanitize=thread -fopenmp \
+                -I"$MIXDEX_TSAN_OPENMP_ROOT/include" \
+                tests/sanitizers/openmp_runtime_probe.cpp \
+                -L"$MIXDEX_TSAN_OPENMP_ROOT/lib" \
+                -Wl,-rpath,"$MIXDEX_TSAN_OPENMP_ROOT/lib" \
+                -o build-tsan/openmp_runtime_probe
+      - name: Check detector and run C++ tests
         run: |
-          ARCHER="$(find /usr/lib -name libarcher.so | head -n 1)"
-          test -n "$ARCHER" || { echo "Archer runtime not found"; exit 1; }
-          echo "Archer: $ARCHER"
-          OMP_NUM_THREADS=4 OMP_TOOL_LIBRARIES="$ARCHER" \
-          TSAN_OPTIONS="ignore_noninstrumented_modules=1" \
-            ctest --test-dir build-tsan --output-on-failure --timeout 600
+          export OMP_NUM_THREADS=4
+          export OMP_TOOL_LIBRARIES="$MIXDEX_TSAN_OPENMP_ROOT/lib/libarcher.so"
+          export ARCHER_OPTIONS=verbose=1
+          export TSAN_OPTIONS="ignore_noninstrumented_modules=1:halt_on_error=1:external_symbolizer_path=/usr/bin/llvm-symbolizer-19"
+          timeout 60s build-tsan/openmp_runtime_probe
+          status=0
+          timeout 60s build-tsan/openmp_runtime_probe --race > build-tsan/expected-race.log 2>&1 || status=$?
+          if [ "$status" -ne 66 ] || ! grep -q 'WARNING: ThreadSanitizer: data race' build-tsan/expected-race.log; then
+            cat build-tsan/expected-race.log
+            echo "The intentional race was not detected correctly"
+            exit 1
+          fi
+          echo "Intentional race detected as expected"
+          ctest --test-dir build-tsan --output-on-failure --timeout 600
