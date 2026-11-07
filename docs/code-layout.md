@@ -3,6 +3,13 @@
 The public C++ API remains in `include/mixdex`. Implementation-only helpers live
 under `src`; they are not additional public APIs.
 
+## Data views
+
+Rows borrow contiguous storage; columns use a read-only strided view. Iterator,
+checked access, copying and lifetime contracts are described in
+[data-views.md](data-views.md). Alternative scaling traversals remain outside the
+library until their performance and behavior are accepted.
+
 ## Dataset
 
 | File | Responsibility |
