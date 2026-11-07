@@ -4,7 +4,7 @@ C++ and Python tools for exact neighbor search and density-based analysis of
 mixed data. The Python catalog API adds stable IDs, query filters, logical
 removal, snapshot persistence and replacement.
 
-This is a pre-release source tree. CI has passed on macOS, Windows (MSVC)
+This is a pre-release source tree. CI workflows target macOS, Windows (MSVC)
 and Linux, including source builds, tests and installed-wheel checks.
 See [CI runs](https://github.com/AlSky361/Mixdex/actions/workflows/ci.yml)
 for the result of each revision.
@@ -152,3 +152,9 @@ See [scientific references](docs/references.md) for method authors and
 implementation-specific differences. Mixdex is licensed under
 [BSD 3-Clause](LICENSE). Third-party notices are in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Categorical encoding
+
+Standalone scalar/set encoders are available in C++ (`mixdex/encoding.hpp`) and
+Python (`mixdex_encoding`). CatalogSnapshot uses the same implementation; fitted
+vocabularies stay fixed during queries. See [encoding.md](docs/encoding.md).

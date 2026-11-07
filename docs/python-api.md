@@ -1,13 +1,14 @@
 # Python quick start
 
 Install from the repository root with `python -m pip install .` using a C++20
-compiler. Python 3.12 is the tested configuration. This installs three modules:
+compiler and Python 3.10 or newer. This installs four modules:
 
 | Module | Use |
 |---|---|
 | `mixdex` | Native Dataset, distances, search, graphs and clustering |
 | `mixdex_catalog` | Raw records, stable IDs, fitted preprocessing, filters and snapshots |
 | `mixdex_preprocessing` | Standalone fitted imputation |
+| `mixdex_encoding` | Native scalar/set encoders and category normalization |
 
 For a catalog or recommendation application, start with [CATALOG.md](../CATALOG.md).
 The catalog returns candidates; application ranking and business rules remain outside
@@ -51,6 +52,8 @@ Native results identify zero-based Dataset row positions, not external catalog I
 Neighbor results are `(row, distance)` pairs sorted by distance, then row index.
 Indexed queries exclude their own row. External queries have no row to exclude;
 an identical stored row can be returned at distance zero.
+
+Categorical label encoders are available in both C++ and Python; see [encoding.md](encoding.md).
 
 ## Query new rows
 

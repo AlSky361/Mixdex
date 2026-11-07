@@ -12,8 +12,9 @@ import threading
 
 import numpy as np
 import mixdex
-from mixdex_preprocessing import (Imputer, category_value as _category, feature_weights,
-                                 numeric_value, resolve_numeric_types, set_columns)
+from mixdex_encoding import LabelEncoder, SetEncoder, category_value as _category
+from mixdex_preprocessing import (Imputer, feature_weights, numeric_value,
+                                 resolve_numeric_types, set_columns)
 
 _FORMAT = "mixdex.catalog.v1"
 _SET_FORMAT = "mixdex.catalog.v2"
@@ -151,25 +152,23 @@ class CatalogSnapshot:
                 valid.append(i)
         keep_n = [j for j in pos_n if valid and any(num[i][j] != num[valid[0]][j] for i in valid)]
         keep_c = [j for j in pos_c if valid and any(cat[i][j] != cat[valid[0]][j] for i in valid)]
-        maps = [sorted({cat[i][j] for i in valid}) for j in keep_c]
-        codes = [{label:code for code,label in enumerate(labels)} for labels in maps]
+        encoders = tuple((SetEncoder if j in obj._set_columns else LabelEncoder).fit(
+            [cat[i][j] for i in valid]) for j in keep_c)
+        maps = [encoder.classes for encoder in encoders]
         unique = {}
         groups = []
         raw_n, raw_c = [], []
         for i in valid:
             a = tuple(num[i][j] for j in keep_n)
-            b = tuple(codes[p][cat[i][j]] for p,j in enumerate(keep_c))
+            b = tuple(encoders[p].encode(cat[i][j]) for p,j in enumerate(keep_c))
             key = (a,b)
             if key not in unique:
                 unique[key] = len(groups); groups.append([]); raw_n.append(list(a)); raw_c.append(list(b))
             groups[unique[key]].append(ids[i])
         medians, scales, levels = [], [], []
         obj._keep_n, obj._keep_c = tuple(keep_n), tuple(keep_c)
-        obj._codes = codes
-        obj._set_members = {
-            p: {label:code for code,label in enumerate(sorted({v for values in maps[p] for v in values}))}
-            for p,j in enumerate(keep_c) if j in obj._set_columns
-        }
+        obj._encoders = encoders
+        obj._set_positions = frozenset(p for p,j in enumerate(keep_c) if j in obj._set_columns)
         kept_weights = [w[j] for j in keep_n]+[w[nn+j] for j in keep_c]
         kept_names = [names_n[j] for j in keep_n]+[names_c[j] for j in keep_c]
         kept_types = [types[j] for j in keep_n]
@@ -192,8 +191,8 @@ class CatalogSnapshot:
             obj._data = _dataset(final_n,final_c,kept_names,kept_types)
             if kept_weights:
                 obj._data.set_weights(kept_weights)
-            for p, members in obj._set_members.items():
-                obj._data.set_category_sets(p, [sorted(members[label] for label in labels) for labels in maps[p]])
+            for p in obj._set_positions:
+                obj._data.set_category_sets(p, encoders[p].dictionary)
             obj._index = mixdex.Index(obj._data, mixdex.SearchMethod.BallTree, leaf_size)
             obj._groups = tuple(tuple(sorted(g)) for g in final_groups)
             obj._id_to_row = {id_:r for r,g in enumerate(obj._groups) for id_ in g}
@@ -267,15 +266,16 @@ class CatalogSnapshot:
             if not math.isfinite(z): raise ValueError("query scaling overflow")
             out_n.append(z)
         out_c=[]
-        out_sets=[[] for _ in self._keep_c] if self._set_members else []
+        out_sets=[[] for _ in self._keep_c] if self._set_positions else []
         for p,j in enumerate(self._keep_c):
             value = _category(b[j], j in self._set_columns)
             if value is None: raise ValueError("query has missing categorical features")
-            out_c.append(self._codes[p].get(value,len(self._codes[p])))
-            if p in self._set_members:
-                members = self._set_members[p]
-                unknown = {label:len(members)+i for i,label in enumerate(label for label in value if label not in members)}
-                out_sets[p] = sorted(members[label] if label in members else unknown[label] for label in value)
+            if p in self._set_positions:
+                encoded = self._encoders[p].encode_query(value)
+                out_c.append(encoded.code)
+                out_sets[p] = encoded.members
+            else:
+                out_c.append(self._encoders[p].encode_query(value))
         return out_n,out_c,out_sets
 
     def prepare_filter(self, allowed_ids):

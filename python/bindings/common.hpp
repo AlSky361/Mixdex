@@ -98,6 +98,7 @@ void def_indexed(py::module_& m, const char* name, Fn fn, Extra... extra) {
 
 // Registrations called from the Python module entry point.
 void bind_data(py::module_& m);  // Enums, features, Dataset, quantiles, scaling and synthetic data.
+void bind_encoding(py::module_& m);    // Scalar and set label dictionaries.
 void bind_density(py::module_& m);     // Distances and density hierarchy.
 void bind_index(py::module_& m);       // Index, BallTree, queries and graphs.
 void bind_mst(py::module_& m);         // Graphs and minimum spanning trees.

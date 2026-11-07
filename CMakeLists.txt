@@ -30,6 +30,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_library(mixdex_lib STATIC
     src/types.cpp
     src/data/categorical.cpp
+    src/data/encoding.cpp
     src/data/dataset_validation.cpp
     src/data/dataset_rows.cpp
     src/data/dataset_columns.cpp
@@ -159,6 +160,7 @@ pybind11_add_module(mixdex
     python/bindings/bindings.cpp
     python/bindings/common.cpp
     python/bindings/bind_data.cpp
+    python/bindings/bind_encoding.cpp
     python/bindings/bind_density.cpp
     python/bindings/bind_index.cpp
     python/bindings/bind_mst.cpp
@@ -169,6 +171,7 @@ pybind11_add_module(mixdex
 # Python catalog facade is distributed next to the extension module.
 configure_file(python/mixdex_catalog.py ${CMAKE_CURRENT_BINARY_DIR}/mixdex_catalog.py COPYONLY)
 configure_file(python/mixdex_preprocessing.py ${CMAKE_CURRENT_BINARY_DIR}/mixdex_preprocessing.py COPYONLY)
+configure_file(python/mixdex_encoding.py ${CMAKE_CURRENT_BINARY_DIR}/mixdex_encoding.py COPYONLY)
 
 target_link_libraries(mixdex PRIVATE
     mixdex_lib
@@ -183,7 +186,7 @@ foreach(config DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
 endforeach()
 install(TARGETS mixdex LIBRARY DESTINATION . COMPONENT PythonRuntime
     RUNTIME DESTINATION . COMPONENT PythonRuntime)
-install(FILES python/mixdex_catalog.py python/mixdex_preprocessing.py
+install(FILES python/mixdex_catalog.py python/mixdex_preprocessing.py python/mixdex_encoding.py
     DESTINATION . COMPONENT PythonRuntime)
 endif()
 
@@ -191,6 +194,9 @@ endif()
 option(MIXDEX_BUILD_TESTS "Build C++ tests" OFF)
 if(MIXDEX_BUILD_TESTS)
     enable_testing()
+    add_executable(test_encoding tests/cpp/test_encoding.cpp)
+    target_link_libraries(test_encoding PRIVATE mixdex_lib)
+    add_test(NAME encoding COMMAND test_encoding)
     add_executable(test_dataset_contracts tests/cpp/test_dataset_contracts.cpp)
     target_link_libraries(test_dataset_contracts PRIVATE mixdex_lib)
     add_test(NAME dataset_contracts COMMAND test_dataset_contracts)

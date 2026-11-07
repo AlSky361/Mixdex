@@ -6,6 +6,7 @@ from numbers import Real
 
 import numpy as np
 import mixdex
+from mixdex_encoding import category_value
 
 
 def numeric_value(value):
@@ -14,18 +15,6 @@ def numeric_value(value):
     if not isinstance(value, Real) or isinstance(value, (bool, np.bool_)):
         raise ValueError("numeric features must be numbers or None")
     return float(value) if math.isfinite(value) else None
-
-
-def category_value(value, is_set):
-    if value is None:
-        return None
-    if not is_set:
-        if not isinstance(value, str):
-            raise ValueError("categorical labels must be strings or None")
-        return value
-    if not isinstance(value, (list, tuple, set, frozenset)) or any(not isinstance(v, str) for v in value):
-        raise ValueError("set features must contain string labels, or be None")
-    return tuple(sorted(set(value)))
 
 
 def resolve_numeric_types(values, count):

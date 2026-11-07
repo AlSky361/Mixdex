@@ -10,6 +10,14 @@ checked access, copying and lifetime contracts are described in
 [data-views.md](data-views.md). Alternative scaling traversals remain outside the
 library until their performance and behavior are accepted.
 
+## Encoding
+
+`include/mixdex/encoding.hpp` and `src/data/encoding.cpp` own scalar and set label
+vocabularies. `python/bindings/bind_encoding.cpp` exposes them; the Python
+`mixdex_encoding` facade normalizes raw category types. Preprocessing imports
+that normalization, and CatalogSnapshot uses the native encoders. See
+[encoding.md](encoding.md) for unknown-label scope and compatibility.
+
 ## Dataset
 
 | File | Responsibility |

@@ -123,3 +123,7 @@ reproduced transform matches the saved one. It does not restore native binary
 state. Save/load require temporary space and memory for reconstruction; measure
 peak usage with both snapshots alive. Checksums do not make untrusted files safe
 against excessive resource consumption.
+
+Category dictionaries are fitted by the native encoders exposed through
+`mixdex_encoding`; [encoding.md](docs/encoding.md) describes their two-level set
+representation and query-only unknown codes. Snapshot formats remain v1/v2/v3.

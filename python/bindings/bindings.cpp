@@ -6,6 +6,7 @@ PYBIND11_MODULE(mixdex, m) {
 
     namespace mp = mixdex::pybind;
     mp::bind_data(m);  // Register enums and Dataset before dependent bindings.
+    mp::bind_encoding(m);
     mp::bind_density(m);
     mp::bind_mst(m);
     mp::bind_index(m);

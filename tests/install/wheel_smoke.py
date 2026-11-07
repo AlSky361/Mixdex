@@ -6,6 +6,12 @@ from importlib.metadata import distribution, version
 import mixdex
 from mixdex_catalog import CatalogSnapshot
 from mixdex_preprocessing import Imputer
+from mixdex_encoding import LabelEncoder, SetEncoder
+
+scalar = LabelEncoder.fit(['b', 'a'])
+assert isinstance(scalar, mixdex.LabelEncoder) and scalar.encode('a') == 0
+sets = SetEncoder.fit([['a'], ['a', 'b']])
+assert sets.encode_query(['a', 'new']).members == [0, 2]
 
 assert version('mixdex') == '0.1.0'
 dist = distribution('mixdex')
