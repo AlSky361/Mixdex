@@ -3,9 +3,11 @@
 #include <cstdio>
 #include <cstring>
 #include <omp.h>
+#include <thread>
 #include <vector>
 
 namespace {
+volatile int race_value = 0;
 void visit(int node, int depth, int limit, std::vector<int>& output);
 
 template <int N>
@@ -45,21 +47,39 @@ int check_task_reuse() {
     return 0;
 }
 
+void race_write(int worker, volatile int& value, std::atomic<int>& arrived) {
+    // Coordinate entry without introducing a happens-before edge between writers.
+    arrived.fetch_add(1, std::memory_order_relaxed);
+    while (arrived.load(std::memory_order_relaxed) != 2) {
+    }
+    // Exercise many conflicting accesses per worker.
+    for (int i = 0; i < 10000; ++i) value = worker;
+}
+
 int check_race_detection() {
-    volatile int value = 0;
+    volatile int& value = race_value;
     std::atomic<int> arrived{0};
     omp_set_dynamic(0);
 #pragma omp parallel num_threads(2) shared(value, arrived)
     {
-        // Each worker runs an undeferred task; neither write precedes the other.
-#pragma omp task if (0) shared(value, arrived)
-        {
-            arrived.fetch_add(1, std::memory_order_release);
-            while (arrived.load(std::memory_order_acquire) != 2) {
-            }
-            value = omp_get_thread_num();  // Deliberate race: TSan must reject this mode.
-        }
+        const int worker = omp_get_thread_num();
+#pragma omp task if (0) firstprivate(worker) shared(value, arrived)
+        race_write(worker, value, arrived);
     }
+    return value < 0;
+}
+
+int check_thread_race() {
+    volatile int& value = race_value;
+    std::atomic<int> arrived{0};
+    std::thread first([&] {
+        race_write(0, value, arrived);
+    });
+    std::thread second([&] {
+        race_write(1, value, arrived);
+    });
+    first.join();
+    second.join();
     return value < 0;
 }
 }  // namespace
@@ -69,5 +89,7 @@ int main(int argc, char** argv) {
         return check_task_reuse();
     if (argc == 2 && std::strcmp(argv[1], "--race") == 0)
         return check_race_detection();
+    if (argc == 2 && std::strcmp(argv[1], "--thread-race") == 0)
+        return check_thread_race();
     return 2;
 }

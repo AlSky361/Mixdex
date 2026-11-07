@@ -86,7 +86,7 @@ jobs:
                 -DOpenMP_omp_LIBRARY="$MIXDEX_TSAN_OPENMP_ROOT/lib/libomp.so" \
                 -DCMAKE_BUILD_RPATH="$MIXDEX_TSAN_OPENMP_ROOT/lib"
           cmake --build build-tsan -j 4
-          "$CXX" -std=c++20 -O1 -g -fsanitize=thread -fopenmp \
+          "$CXX" -std=c++20 -O1 -g -pthread -fsanitize=thread -fopenmp \
                 -I"$MIXDEX_TSAN_OPENMP_ROOT/include" \
                 tests/sanitizers/openmp_runtime_probe.cpp \
                 -L"$MIXDEX_TSAN_OPENMP_ROOT/lib" \
@@ -97,14 +97,19 @@ jobs:
           export OMP_NUM_THREADS=4
           export OMP_TOOL_LIBRARIES="$MIXDEX_TSAN_OPENMP_ROOT/lib/libarcher.so"
           export ARCHER_OPTIONS=verbose=1
-          export TSAN_OPTIONS="ignore_noninstrumented_modules=1:halt_on_error=1:external_symbolizer_path=/usr/bin/llvm-symbolizer-19"
+          export TSAN_OPTIONS="ignore_noninstrumented_modules=1:halt_on_error=1:exitcode=66:external_symbolizer_path=/usr/bin/llvm-symbolizer-19"
           timeout 60s build-tsan/openmp_runtime_probe
-          status=0
-          timeout 60s build-tsan/openmp_runtime_probe --race > build-tsan/expected-race.log 2>&1 || status=$?
-          if [ "$status" -ne 66 ] || ! grep -q 'WARNING: ThreadSanitizer: data race' build-tsan/expected-race.log; then
-            cat build-tsan/expected-race.log
-            echo "The intentional race was not detected correctly"
-            exit 1
-          fi
-          echo "Intentional race detected as expected"
+          for mode in --thread-race --race; do
+            log="build-tsan/expected-${mode#--}.log"
+            status=0
+            timeout 60s build-tsan/openmp_runtime_probe "$mode" > "$log" 2>&1 || status=$?
+            if [ "$status" -ne 66 ] || \
+               ! grep -q 'WARNING: ThreadSanitizer: data race' "$log" || \
+               ! grep -q 'race_write' "$log"; then
+              cat "$log"
+              echo "Control $mode exited with $status; expected 66 and a race_write report"
+              exit 1
+            fi
+            echo "Intentional race detected as expected: $mode"
+          done
           ctest --test-dir build-tsan --output-on-failure --timeout 600

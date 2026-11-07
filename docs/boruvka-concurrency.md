@@ -45,12 +45,16 @@ false positives; see the
 [Clang TSan guidance](https://clang.llvm.org/docs/ThreadSanitizer.html#non-instrumented-code).
 
 `tests/sanitizers/openmp_runtime_probe.cpp` calibrates the configuration before
-CTest: repeated valid tasks must succeed, and `--race` must produce a data-race
-report and exit code 66. This intentional failure is accepted only for that
-control run. Reports from library tests still fail the job. No project functions
-are suppressed or excluded from memory instrumentation.
+CTest. Repeated valid tasks must succeed. Both `--race` (OpenMP tasks) and
+`--thread-race` (C++ threads) must exit with code 66 and report the conflicting
+writes in `race_write`. The writers coordinate entry with relaxed atomics, then
+repeat volatile writes to one global variable, without runtime calls in that
+write loop. A single access pair is insufficient for reliable calibration.
+These intentional failures are accepted only for the two control runs; library
+test reports still fail the job. No project functions are suppressed or excluded
+from memory instrumentation.
 
 This runtime is built in the runner's temporary directory and is not shipped in
-the library. Changes to the diagnostic compiler/runtime require both controls
+the library. Changes to the diagnostic compiler/runtime require all controls
 and the complete C++ suite to pass again. Finite runs do not prove race freedom
 for every input or schedule.
