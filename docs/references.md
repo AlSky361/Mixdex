@@ -50,7 +50,7 @@ Third-party code notices are separate: see [THIRD_PARTY_NOTICES.md](../THIRD_PAR
   The paper's Euclidean complexity analysis is not automatically an analysis of
   Mixdex's mixed-distance or mutual-reachability implementation. Component-local
   locking and deterministic tie handling are documented separately in
-  [boruvka-concurrency.md](boruvka-concurrency.md).
+  [parallel Boruvka invariants](distance-bounds.md#parallel-boruvka).
 - Ryan Curtin, William March, Parikshit Ram, David Anderson, Alexander Gray,
   Charles Isbell (2013). *Tree-Independent Dual-Tree Algorithms*.
   PMLR 28(3), 1435–1443.
@@ -107,6 +107,7 @@ Third-party code notices are separate: see [THIRD_PARTY_NOTICES.md](../THIRD_PAR
   [definitions in R](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/quantile.html).
   `src/quantile.cpp`, `src/scale.cpp` and `python/mixdex_preprocessing.py` use
   type 1 for discrete and type 8 for continuous numeric features.
+  Contracts, numerical handling and selection complexity: [quantiles and scaling](api.md#quantiles-and-scaling).
 - Nicholas J. Higham (2002). *Accuracy and Stability of Numerical Algorithms*,
   second edition. [Author record](https://nhigham.com/accuracy-and-stability-of-numerical-algorithms/).
   Reference for unit roundoff and gamma-style error bounds in
@@ -117,7 +118,7 @@ Third-party code notices are separate: see [THIRD_PARTY_NOTICES.md](../THIRD_PAR
 Median/mode imputation is also described by
 [scikit-learn SimpleImputer](https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html).
 The frequent-element set fill and fitted snapshot policy are project choices;
-see [imputation.md](imputation.md). Basic heaps, union-find and nearest-neighbor
+see [fitted imputation](api.md#imputation). Basic heaps, union-find and nearest-neighbor
 search are standard supporting structures; no invention claim is made for them.
 The former `gower_*` name is historical; the current composite is defined in
 README.md and is not a claim to reproduce all missing-data conventions of Gower's

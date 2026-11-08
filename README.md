@@ -1,160 +1,155 @@
-# mixdex
+# Mixdex
 
-C++ and Python tools for exact neighbor search and density-based analysis of
-mixed data. The Python catalog API adds stable IDs, query filters, logical
-removal, snapshot persistence and replacement.
+C++20 and Python library for neighbor search, clustering and outlier detection
+on mixed numeric, categorical and set-valued data. The Python catalog layer adds
+stable record IDs, filters, logical removal and persistent snapshots.
 
-This is a pre-release source tree. CI workflows target macOS, Windows (MSVC)
-and Linux, including source builds, tests and installed-wheel checks.
-See [CI runs](https://github.com/AlSky361/Mixdex/actions/workflows/ci.yml)
-for the result of each revision.
+## Input model
 
-Numeric ranges and sentinel rules are described in
-[numeric contracts](docs/numeric-contracts.md).
-See [implementation layout](docs/code-layout.md) for the internal file responsibilities.
+Each row describes one object; columns have fixed meanings across all rows.
 
-## Distance
+| Feature | Raw Python value | Distance component |
+| :--- | :--- | :--- |
+| Numeric, continuous or discrete | Finite number | Absolute difference after fitted scaling |
+| Scalar categorical | String | 0 for equal labels, 1 otherwise |
+| Set categorical | Collection of strings | Jaccard distance; two empty sets have distance 0 |
 
-The ordinary distance combines numeric L1, categorical Hamming and set Jaccard:
+Each feature has a fixed weight. The final distance is
 
-    distance(x, y) = sum_j weight[j] * component_distance[j](x[j], y[j]) / sum_j weight[j]
-
-Every component has its own feature indices. Numeric features use the fitted
-scale; categorical values use equality. Set features use Jaccard, including
-empty-to-empty distance zero. Positive retained weights define a metric on
-representations, not necessarily on distinct external IDs.
-
-The old gower_* API is renamed to distance*; update imports and header includes
-to `mixdex/distance.hpp`. Historical experiment reports retain the old names.
-
-For set features, encode each distinct set as a categorical code and attach its
-dictionary before building the index:
-
-```python
-import mixdex
-
-d = mixdex.Dataset([], [0, 1, 2], 3, 0, 1,
-                   [mixdex.FeatureType.Categorical], [], ["genres"])
-d.set_category_sets(0, [[], [10], [10, 20]])
-print(mixdex.distance(d, 1, 2))  # 0.5
-index = mixdex.Index(d)
-print(mixdex.knn(index, 1, 2))
+```text
+d(x, y) = sum_j weight[j] * component_distance[j](x[j], y[j]) / sum_j weight[j]
 ```
 
-Dictionary sets are canonicalized and must be distinct; members are nonnegative
-integer labels. Rebuild indices after changing dictionaries. Unregistered query
-codes represent isolated unknown values, not arbitrary new sets. For the catalog facade declare `categorical_set_columns=[0]` and pass collections
-of string labels in that column; see CATALOG.md. External set queries may contain
-new combinations and members. Unknown data and known empty sets are different.
+Weights must be finite and nonnegative, with a positive finite total and finite
+reciprocal total. Zero-weight features are removed. In exact arithmetic, positive
+retained weights produce a metric on complete representations; different record IDs can have
+the same representation and distance zero.
 
-## Python installation
+Use `CatalogSnapshot` for raw row matrices and external IDs. Use native `Dataset`
+for prepared numeric values and nonnegative integer category codes. Category
+codes represent equality, not an order or numeric magnitude; vocabularies are
+independent for each column. Set columns must be declared explicitly.
 
-Run these commands from the repository root with Python 3.12, CMake >= 3.20
-and a C++20 compiler installed. On Windows, use the Visual Studio C++ workload.
+## Data preparation
 
-macOS/Linux:
+`CatalogSnapshot.build` fits category encoders and numeric scales, removes
+constant or zero-weight columns, and groups identical representations while
+preserving their IDs. Missing active values exclude the affected source records
+by default. An empty set is a known value, distinct from a missing value.
+
+Optional `impute=True` fills numbers with type-specific medians, scalar
+categories with modes, and sets with frequent elements. Fitted fills, dictionaries
+and scales are reused for queries; they do not change on each search.
+
+Native `Dataset` uses `Strict` to reject missing values, duplicates and constants,
+or `Clean` to remove them. It does not automatically encode labels, impute values
+or fit scales. Fit a `Scaler` once and reuse it for stored and external rows.
+
+## What you can compute
+
+| Task | Entry points |
+| :--- | :--- |
+| Nearest neighbors and radius queries | `Index`, `knn`, `knn_query`, `radius_query_points` |
+| Filtered catalog retrieval | `CatalogSnapshot.search`, `search_by_id`, `prepare_filter` |
+| Core distances and minimum spanning trees | `core_distances`, `boruvka`, `dt_boruvka` |
+| Density clustering | `dbscan`, `hdbscan` |
+| Nearest-neighbor classification | `knn_classify`, `knn_predict` |
+| Outlier scores | `knn_outlier_scores`, `LOF`, HDBSCAN GLOSH scores |
+| Reusable preprocessing | `LabelEncoder`, `SetEncoder`, `Imputer`, `Scaler` |
+
+Recommendation ranking, business rules and rebuild scheduling belong to the
+application. Logical catalog removal filters retrieval; it does not update an
+existing MST or clustering hierarchy.
+
+## Installation and first example
+
+Python 3.10+, a C++20 compiler and CMake 3.20+ are required for a source build.
+On Windows install the Visual Studio C++ workload. OpenMP is optional and off by
+default. NumPy is the only runtime Python dependency.
+
+macOS/Linux, from the repository root:
 
 ```sh
 python3 -m venv .venv
 .venv/bin/python -m pip install .
 ```
 
-Windows (PowerShell):
+Windows PowerShell:
 
 ```powershell
-py -3.12 -m venv .venv
+py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install .
 ```
 
-Use that environment's Python for your scripts and tests. The library is imported
-by a Python program; it does not start a server or open a user interface.
-See [Python quick start](docs/python-api.md) for complete native-API examples and
-[Catalog API](CATALOG.md) for raw records, stable IDs and filters.
+Run examples using that environment's Python. Installation builds a wheel for
+the current Python ABI, OS and architecture.
 
-This builds a platform-specific wheel. It does not provide a universal binary
-or publish anything to PyPI. Only NumPy is a runtime Python dependency.
+```python
+from mixdex_catalog import CatalogSnapshot
 
-## Build from source
-
-Install a C++20 compiler, CMake >= 3.20, Python development files and dependencies:
-
-```sh
-python -m pip install -r requirements-test.txt
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DMIXDEX_BUILD_TESTS=ON -DUSE_OPENMP=OFF -DUSE_NATIVE=OFF -Dpybind11_DIR="$(python -m pybind11 --cmakedir)"
-cmake --build build --config Release --parallel
-ctest --test-dir build -C Release --output-on-failure
+catalog = CatalogSnapshot.build(
+    ids=[101, 102, 103],
+    numeric=[[2000, 90], [2010, 110], [2020, 100]],
+    categorical=[[['drama']], [['drama', 'thriller']], [['comedy']]],
+    numeric_names=['year', 'duration'],
+    categorical_names=['genres'],
+    categorical_set_columns=[0],
+    weights=[1, 1, 2],
+)
+print(catalog.search_by_id(101, k=2)['items'])  # (record_id, distance) pairs.
 ```
 
-PowerShell configuration (Visual Studio C++ workload required):
+C++ consumers use the installed CMake package:
 
-```powershell
-$pybind = python -m pybind11 --cmakedir
-cmake -S . -B build -DMIXDEX_BUILD_TESTS=ON -DUSE_OPENMP=OFF -DUSE_NATIVE=OFF "-Dpybind11_DIR=$pybind"
-cmake --build build --config Release --parallel
-ctest --test-dir build -C Release --output-on-failure
-$env:MIXDEX_BUILD_DIR = "$PWD/build"
-python -m pytest -q
+```cmake
+cmake_minimum_required(VERSION 3.20)
+project(example LANGUAGES CXX)
+find_package(mixdex CONFIG REQUIRED)
+add_executable(example main.cpp)
+target_link_libraries(example PRIVATE mixdex::mixdex)
 ```
 
-On macOS/Linux set `MIXDEX_BUILD_DIR=$PWD/build` before pytest. Add the build
-directory to PYTHONPATH to import both mixdex and mixdex_catalog in applications.
-`./build.sh` and `./build.ps1` are convenience wrappers; builds do not format
-sources or delete another configuration. C++-only builds use
-`-DMIXDEX_BUILD_PYTHON=OFF` and do not require Python or pybind11.
+```cpp
+#include <mixdex/index/index.hpp>
+#include <mixdex/types.hpp>
 
-On macOS, `build.sh` explicitly selects the SDK from the active Xcode or Command
-Line Tools directory. It respects `DEVELOPER_DIR` and an explicit SDK path in
-`SDKROOT`, and prints the SDK used. This avoids mixing a newer standalone SDK
-with an older linker. The system-wide developer selection is not changed.
-To choose an SDK manually, run `SDKROOT=/path/to/MacOSX.sdk ./build.sh`.
-Direct CMake builds can use `-DCMAKE_OSX_SYSROOT=/path/to/MacOSX.sdk`.
-
-OpenMP is optional. For macOS install libomp and enable `USE_OPENMP`; for Linux
-use a compiler with the matching OpenMP runtime. MSVC task-based builds require
-an OpenMP implementation supporting tasks; start with the sequential build.
-For heavily oversubscribed OpenMP tests, use OMP_WAIT_POLICY=PASSIVE and
-KMP_BLOCKTIME=0 to avoid expensive spinning. Native CPU flags are off by default. Python packaging uses scikit-build-core; wheels are specific to the Python ABI,
-OS and architecture used to build them.
-
-## C++ installation
-
-```sh
-cmake --install build --config Release --prefix /your/prefix --component CppDevelopment
+int main() {
+    mixdex::Dataset data({}, {0, 1}, 2, 0, 1,
+                         {mixdex::FeatureType::Categorical}, {}, {"kind"});
+    mixdex::Index index(data);
+    const auto neighbors = index.search().knn(0, 1);
+    return neighbors.size() == 1 && neighbors[0].first == 1 ? 0 : 1;
+}
 ```
 
-Consumers use `find_package(mixdex CONFIG REQUIRED)` and link `mixdex::mixdex`.
-The exported target carries C++20 and thread/OpenMP dependencies. A relocatable
-install is tested with the separate project under `tests/install`.
+See [build and installation](docs/api.md#build) for C++-only builds, package
+installation, tests and platform-specific settings.
 
-## Catalog API
+## Contracts and limitations
 
-See [CATALOG.md](CATALOG.md) for build, search_by_id, filters, remove/restore,
-save/load and SnapshotStore. The library retrieves candidates; it is not a
-complete recommendation service. Numeric missing values and negative category
-codes are rejected or removed according to Dataset policy. Zero-weight columns
-are removed and resulting duplicate rows are merged.
+- Native search results use Dataset row positions; catalog results use external
+  signed 64-bit IDs. Internal indices are signed 32-bit values, not a tested
+  dataset-capacity promise.
+- Keep the Dataset alive while its native index is in use. Rebuild after changing
+  weights, dictionaries or representations. Catalog geometry changes through a
+  new snapshot; `remove/restore` changes only logical activity.
+- Exact HDBSCAN requires BallTree. Approximate mode uses a restricted graph and
+  can return different results. Search speed depends on the data and workload.
+- A saved catalog contains source data and fitted transforms. Loading rebuilds
+  the index and checks preprocessing compatibility; it does not restore a native
+  binary image.
 
-## Development
+CI targets macOS, Windows and Linux. Check the
+[CI runs](https://github.com/AlSky361/Mixdex/actions/workflows/ci.yml) for the result
+of each revision.
 
-Optional fitted imputation is available in the Python preprocessing layer:
-`CatalogSnapshot.build(..., impute=True, numeric_types=['Continuous', 'Discrete'])`.
-It uses type-specific numeric medians, scalar category modes and frequent-element
-sets whose size is the discrete median of known set sizes. Parameters are fixed
-for queries and stored with snapshots. See [imputation.md](docs/imputation.md)
-for the standalone Imputer and fully missing column behavior.
+Detailed reading:
 
-Tests cover exact search, bounds, weights, preprocessing, density algorithms
-and snapshots. Build outputs and editor caches are excluded from version control.
+- [API, examples and contracts](docs/api.md)
+- [Distance, lower bounds and quantiles](docs/distance-bounds.md)
+- [Scientific references and implementation scope](docs/references.md)
 
-## References and license
+## License
 
-See [scientific references](docs/references.md) for method authors and
-implementation-specific differences. Mixdex is licensed under
-[BSD 3-Clause](LICENSE). Third-party notices are in
+[BSD 3-Clause](LICENSE). Third-party notices are preserved separately in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-## Categorical encoding
-
-Standalone scalar/set encoders are available in C++ (`mixdex/encoding.hpp`) and
-Python (`mixdex_encoding`). CatalogSnapshot uses the same implementation; fitted
-vocabularies stay fixed during queries. See [encoding.md](docs/encoding.md).
