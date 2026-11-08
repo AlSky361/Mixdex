@@ -104,4 +104,5 @@ int main() {
     }
 
     std::puts("test_scale_validation: OK");
+    return 0;
 }
