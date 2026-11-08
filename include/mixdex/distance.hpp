@@ -5,12 +5,13 @@
 namespace mixdex {
 
 // Kernels require valid row indices and complete queries matching the Dataset schema.
-// Debug assertions check these preconditions; Python validates indices at its boundary.
+// Debug assertions check indices and block lengths; entry points validate query values.
+// Recover intermediate overflow; an unrepresentable final distance remains +infinity.
 
 /// Weighted numeric L1, scalar Hamming and set Jaccard, divided by total feature weight.
 [[nodiscard]] double distance(const Dataset& data, int i, int j) noexcept;
 
-/// Compare a complete external row using the Dataset schema and preprocessing.
+/// Compare an already preprocessed external row matching the Dataset schema.
 [[nodiscard]] double distance(const Dataset& data, const RowView& q, int j) noexcept;
 
 /// May return a partial distance above bound; values at or below bound are exact.

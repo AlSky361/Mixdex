@@ -1,6 +1,7 @@
 // Method references: docs/references.md#spanning-trees-and-dual-tree-search
 #include <algorithm>
 
+#include "../distance_range.hpp"
 #include "mixdex/density/mreach/mreach.hpp"
 #include "mixdex/distance.hpp"
 #include "mixdex/index/ball_tree/ball_tree.hpp"
@@ -39,7 +40,7 @@ void BallTree::set_core_dist(const std::vector<double>& cd) {
 
 namespace {
 
-inline double rounding_gamma(Idx m) {
+inline double rounding_gamma(std::size_t m) {
     const double mu = static_cast<double>(m) * kUnitRoundoff;
     return mu / (1.0 - mu);
 }
@@ -59,12 +60,19 @@ double distance_lb(const Dataset& data,
     const auto q_num = q_row.num;
     const auto q_cat = q_row.cat;
 
+    double max_delta = 1.0;
     double bbox_sum = 0.0;
     for (Idx k = 0; k < n_num; ++k) {
         const double q = q_num[k];
-        const double delta = std::max({0.0, q - bbox_hi[k], bbox_lo[k] - q});
+        const double right = q - bbox_hi[k], left = bbox_lo[k] - q;
+        const double delta = std::max({0.0, right, left});
+        max_delta = std::max({max_delta, std::abs(right), std::abs(left)});
         bbox_sum += data.weight(k) * delta;
     }
+
+    if (n_num > 0 && !detail::distance_range_fits(
+                         max_delta, static_cast<std::size_t>(d), inv_W, data.has_weights()))
+        return 0.0;
 
     double cat_sum = 0.0;
     for (Idx k = 0; k < n_cat; ++k) {
@@ -81,7 +89,8 @@ double distance_lb(const Dataset& data,
     for (Idx k = 0; k < n_num; ++k) ball_sum += data.weight(k) * std::abs(q_num[k] - c_num[k]);
     const double ball = ball_sum * inv_W;
     const double cat = cat_sum * inv_W;
-    const double slack = rounding_gamma(d + kBallBoundRoundingOps) * (ball + node.radius_num + cat);
+    const double slack = rounding_gamma(static_cast<std::size_t>(d) + kBallBoundRoundingOps) *
+                         (ball + node.radius_num + cat);
     const double lb_ball = std::max(0.0, ball - node.radius_num - slack) + cat;
 
     return std::max(lb_ball, lb_bbox);
@@ -129,11 +138,18 @@ double BallTree::lower_bound_mreach_node(int qnode_idx, int rnode_idx) const {
     auto r_lo = bbox_lo(rnode_idx);
     auto r_hi = bbox_hi(rnode_idx);
 
+    double max_delta = 1.0;
     double bbox_sum = 0.0;
     for (Idx k = 0; k < n_num; ++k) {
-        const double delta = std::max({0.0, r_lo[k] - q_hi[k], q_lo[k] - r_hi[k]});
+        const double right = r_lo[k] - q_hi[k], left = q_lo[k] - r_hi[k];
+        const double delta = std::max({0.0, right, left});
+        max_delta = std::max({max_delta, std::abs(right), std::abs(left)});
         bbox_sum += data_.weight(k) * delta;
     }
+
+    if (n_num > 0 && !detail::distance_range_fits(
+                         max_delta, static_cast<std::size_t>(d), inv_W, data_.has_weights()))
+        return min_core;
 
     double cat_sum = 0.0;
     for (Idx k = 0; k < n_cat; ++k) {
@@ -147,7 +163,7 @@ double BallTree::lower_bound_mreach_node(int qnode_idx, int rnode_idx) const {
     const double lb_bbox = bbox_sum * inv_W;
     const double cat = cat_sum * inv_W;
 
-    const double gamma = rounding_gamma(d + kNodePairRoundingOps);
+    const double gamma = rounding_gamma(static_cast<std::size_t>(d) + kNodePairRoundingOps);
 
     const double d_centers_num = distance_num_partial(data_, qnode.center_idx, rnode.center_idx);
     const double slack1 = gamma * (d_centers_num + qnode.radius_num + rnode.radius_num + cat);

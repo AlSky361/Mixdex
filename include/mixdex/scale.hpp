@@ -21,7 +21,7 @@ struct ScaleParams {
     ScaleLevel level;
 };
 
-/// Fit a positive scale; reject empty, nonfinite, constant or numerically degenerate input.
+/// Fit a finite positive scale; reject empty, nonfinite, constant or numerically degenerate input.
 ScaleParams fit_scale_params(std::span<const double> values, NumericType type);
 
 std::vector<double> scale_feature(std::span<const double> values, NumericType type);
@@ -33,9 +33,10 @@ public:
 
     static Scaler fit(const Dataset& data);
 
+    /// Preserve the schema and metadata when data has no rows.
     Dataset transform(const Dataset& data) const;
 
-    /// Transform m row-major numeric rows using the fitted schema.
+    /// Transform m row-major numeric rows; unrepresentable results throw overflow_error.
     std::vector<double> transform_rows(std::span<const double> num, std::size_t m) const;
 
     Idx n_num() const noexcept {

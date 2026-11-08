@@ -103,6 +103,48 @@ int main() {
         CHECK(std::string(error.what()) == "buffer size overflow");
     }
 
+    const double largest = std::numeric_limits<double>::max();
+    try {
+        fit_scale_params(std::vector<double>{-largest, largest}, NumericType::Continuous);
+        CHECK(false);
+    } catch (const std::overflow_error&) {
+    }
+    const Dataset training(
+        {-1e308, -9.9e307}, {}, 2, 1, 0, {FeatureType::Numeric}, {NumericType::Continuous}, {"x"});
+    const auto extreme_scaler = Scaler::fit(training);
+    const auto query = extreme_scaler.transform_rows(std::vector<double>{1e308}, 1);
+    CHECK(std::isfinite(query[0]) && std::abs(query[0] - 199.5) < 1e-10);
+    const auto small_scaler = Scaler::fit(Dataset(
+        {0.0, 1e-20}, {}, 2, 1, 0, {FeatureType::Numeric}, {NumericType::Continuous}, {"x"}));
+    try {
+        small_scaler.transform_rows(std::vector<double>{largest}, 1);
+        CHECK(false);
+    } catch (const std::overflow_error&) {
+    }
+
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    Dataset cleaned({nan, nan},
+                    {0, 1},
+                    2,
+                    1,
+                    1,
+                    {FeatureType::Numeric, FeatureType::Categorical},
+                    {NumericType::Continuous},
+                    {"x", "tags"},
+                    DatasetPolicy::Clean,
+                    {});
+    cleaned.set_category_sets(0, {{0}, {0, 1}});
+    cleaned.set_weights({2, 3});
+    CHECK(cleaned.empty() && cleaned.preprocess_report().rows_dropped_missing == 2);
+    for (const auto& empty : {extreme_scaler.transform(cleaned), scale(cleaned)}) {
+        CHECK(empty.n_rows() == 0 && empty.n_num() == 1 && empty.n_cat() == 1);
+        CHECK(empty.feat_name(0) == "x" && empty.feat_name(1) == "tags");
+        CHECK(empty.feat_type(1) == FeatureType::CategoricalSet);
+        CHECK(empty.category_sets() == cleaned.category_sets());
+        CHECK(empty.weight(0) == 2 && empty.weight(1) == 3);
+        CHECK(empty.preprocess_report().rows_dropped_missing == 2);
+    }
+
     std::puts("test_scale_validation: OK");
     return 0;
 }

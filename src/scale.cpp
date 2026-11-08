@@ -13,6 +13,18 @@
 using namespace mixdex::constants;
 
 namespace mixdex {
+namespace {
+
+double scaled_value(double value, double median, double scale) {
+    const double difference = value - median;
+    const double result =
+        std::isfinite(difference) ? difference / scale : value / scale - median / scale;
+    if (!std::isfinite(result))
+        throw std::overflow_error("scaled value exceeds the finite double range");
+    return result;
+}
+
+}  // namespace
 
 ScaleParams fit_scale_params(std::span<const double> values, NumericType type) {
     if (values.empty()) {
@@ -35,9 +47,11 @@ ScaleParams fit_scale_params(std::span<const double> values, NumericType type) {
                   {qs[5] - qs[1], ScaleLevel::Idr},
                   {qs[6] - qs[0], ScaleLevel::Range}};
     for (const auto& step : ladder) {
-        if (step.width > tol)
+        if (std::isfinite(step.width) && step.width > tol)
             return {median, step.width, step.level};
     }
+    if (!std::isfinite(ladder[2].width))
+        throw std::overflow_error("numeric scale exceeds the finite double range");
     // Dataset rejects exact constants; nonconstant widths can still be numerically unusable.
     if (qs[0] == qs[6]) {
         throw std::invalid_argument(
@@ -55,7 +69,7 @@ std::vector<double> scale_feature(std::span<const double> values, NumericType ty
 
     std::vector<double> result(values.size());
     for (std::size_t i = 0; i < values.size(); ++i) {
-        result[i] = (values[i] - p.median) / p.scale;
+        result[i] = scaled_value(values[i], p.median, p.scale);
     }
     return result;
 }
@@ -94,7 +108,7 @@ std::vector<double> Scaler::transform_rows(std::span<const double> num, std::siz
     std::vector<double> out(num.size());
     for (std::size_t i = 0; i < m; ++i)
         for (std::size_t k = 0; k < d; ++k)
-            out[i * d + k] = (num[i * d + k] - median_[k]) / scale_[k];
+            out[i * d + k] = scaled_value(num[i * d + k], median_[k], scale_[k]);
     return out;
 }
 
@@ -107,7 +121,7 @@ Dataset Scaler::transform(const Dataset& data) const {
         throw std::invalid_argument("Scaler::transform: число числовых признаков не совпадает");
 
     if (n == 0)
-        return Dataset();
+        return data;
 
     std::vector<double> num_data(static_cast<std::size_t>(n) * n_num);
     std::vector<NumericType> num_types(n_num);
@@ -117,7 +131,7 @@ Dataset Scaler::transform(const Dataset& data) const {
         num_types[k] = data.num_type(k);
         for (int i = 0; i < n; ++i) {
             num_data[static_cast<std::size_t>(i) * n_num + k] =
-                (span_col[i] - median_[k]) / scale_[k];
+                scaled_value(span_col[i], median_[k], scale_[k]);
         }
     });
 
@@ -159,7 +173,7 @@ Dataset Scaler::transform(const Dataset& data) const {
 
 Dataset scale(const Dataset& data) {
     if (data.n_rows() == 0)
-        return Dataset();
+        return data;
     return Scaler::fit(data).transform(data);
 }
 

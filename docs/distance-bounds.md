@@ -64,6 +64,62 @@ Notation: set inclusion allowing equality is written as A subseteq B. Probabilis
 notes use M[Z] and D[Z] for expectation and variance and F_Z(t)=P{Z<t}.
 The symbol D(x,y) above denotes a distance, not the variance operator.
 
+<a id="floating-point-range"></a>
+
+## Floating-point range
+
+The ordinary distance expression is retained when it produces a finite result.
+Otherwise a private accumulator stores a nonnegative binary fraction and an
+integer exponent. Products and additions align those exponents; normalization
+materializes the final result only after multiplying by the stored inverse W.
+If subtraction of finite coordinates overflows, its operands have opposite
+signs, so their absolute values can be accumulated separately. The fallback
+takes O(d) work and O(1) storage, in addition to set-comparison work. It can
+still return positive infinity when the final result exceeds the double range.
+It does not promise correct rounding or recover ordinary-path underflow.
+
+The range guard in `src/distance_range.hpp` prevents mixing this recovered
+arithmetic with a geometric bound derived from the original operation order.
+The following argument assumes binary64, round-to-nearest, gradual underflow,
+finite complete coordinates, validated weights, and no fast-math reassociation.
+It certifies absence of overflow in those distance expressions; it does not
+complete the legacy rounding-allowance proof described above.
+
+1. Let r be the stored rounded inverse of the finite sequential weight sum W.
+   Positive summands imply each weight is at most W. With b=nextafter(r,0),
+   b <= 1/W. If frexp(b) has exponent e, each weight is at most the power
+   P_w=2^(1-e). Without explicit weights use P_w=1.
+2. Let M be the maximum of one and the absolute rounded differences between
+   the query and both bbox endpoints, or the opposing endpoints of two boxes.
+   If frexp(M) has exponent a, a conservative bound for both cross distances
+   and internal node differences is 2^(a+1). The latter also covers radii,
+   because centers are stored points. Reject a nonfinite endpoint difference
+   or an unrepresentable coordinate-difference envelope.
+3. Every weighted component is bounded by P=2^(a+1)*P_w. Numeric coordinates
+   use the envelope above; categorical distances are at most one. A positive
+   prefix of t components is at most t*P by monotone rounding, since that
+   dyadic upper bound is representable. The dimension count has at most
+   31 significant bits, so d*P is exact whenever finite. Checking that d*P
+   and (d*P)*r are finite excludes product, sum and normalization overflow.
+4. A cheap sufficient case handles M <= 2^256 and
+   2^-256 <= r <= 2^256. Then coordinate differences are bounded by 2^258,
+   weights by 2^257, d < 2^31, and normalized prefixes by 2^802, safely
+   below binary64 overflow. These powers are range budgets, not model parameters.
+5. If the guard fails, point/node geometry returns zero; node/node
+   mutual reachability retains only the minimum-core-distance bound.
+   Pure categorical data need no guard: every component is at most one,
+   and their sequential weighted sum is bounded by the validated W.
+
+The numeric early cutoff uses the same dyadic-prefix argument for its remaining
+categorical additions; otherwise it completes the distance before deciding.
+These checks add constant work per bound without changing its O(d) cost.
+Conservative fallback can reduce pruning and increase search work on extreme
+data; unchanged average search time is not asserted.
+
+Primitive contracts: Microsoft CRT documentation for
+[`frexp`](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/frexp?view=msvc-170)
+and [`ldexp`](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/ldexp?view=msvc-170).
+
 <a id="quantiles"></a>
 
 ## Quantile definitions

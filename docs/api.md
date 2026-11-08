@@ -557,10 +557,25 @@ its source data; no silent migration or relaxed comparison is applied.
 `fit_scale_params` and `scale_feature` fit numeric medians and widths.
 `Scaler::fit` fits all numeric columns; reuse its parameters for stored and
 external rows. Width selection tries IQR, then the interdecile range, then
-max - min, accepting the first width greater than
+max - min, accepting the first finite width greater than
 `kScaleRelEps * max(abs(min), abs(max))`. Empty, nonfinite, constant and
 numerically degenerate inputs are rejected. `ScaleLevel` records which width
 was selected. Scaling does not refit on each query.
+
+If no finite usable width exists because the range overflows, fitting throws
+`std::overflow_error`. Transforming first tries `(value - median) / scale`;
+if only the subtraction overflows, it tries `value / scale - median / scale`.
+An unrepresentable transformed value also throws `std::overflow_error`.
+The current Python runtime-error translator exposes these failures as
+`mixdex.RuntimeError`, a subclass of `RuntimeError`.
+`scale` and `Scaler::transform` preserve an empty Dataset's schema and metadata;
+the latter still checks that the numeric feature count matches the fitted scaler.
+
+Distance kernels recover intermediate overflow with a binary-scaled accumulator.
+They retain the original calculation when its result is finite. If the final
+normalized result is unrepresentable, the `noexcept` kernels return positive
+infinity. This is overflow recovery, not a correctly rounded arithmetic or
+underflow guarantee. See [range checks](distance-bounds.md#floating-point-range).
 
 <a id="numeric-types-and-errors"></a>
 
