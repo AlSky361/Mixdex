@@ -7,37 +7,18 @@
 
 namespace mixdex {
 
-std::vector<unsigned char> Dataset::find_constant_columns() const {
-    const std::size_t n_num_f = n_num();
-    const std::size_t n_cat_f = n_cat();
-    const std::size_t n_cols_f = n_num_f + n_cat_f;
-
-    std::vector<unsigned char> col_constant(n_cols_f, 0);
-    if (n_ == 0)
-        return col_constant;  // No constant columns without rows.
-
-    for (std::size_t k = 0; k < n_num_f; ++k) {
-        const double v0 = num_data_[k];
-        bool constant = true;
-        for (std::size_t i = 1; i < n_ && constant; ++i) {
-            if (num_data_[i * n_num_f + k] != v0)
-                constant = false;
-        }
-        col_constant[k] = constant ? 1 : 0;
-    }
-    for (std::size_t k = 0; k < n_cat_f; ++k) {
-        const Code v0 = cat_data_[k];
-        bool constant = true;
-        for (std::size_t i = 1; i < n_ && constant; ++i) {
-            if (cat_data_[i * n_cat_f + k] != v0)
-                constant = false;
-        }
-        col_constant[n_num_f + k] = constant ? 1 : 0;
-    }
-    return col_constant;
-}
-
 namespace {
+
+template <class T>
+bool column_is_constant(StridedSpan<T> column) {
+    if (column.empty())
+        return false;
+    const T first = column[0];
+    for (std::size_t i = 1; i < column.size(); ++i)
+        if (column[i] != first)
+            return false;
+    return true;
+}
 
 template <class T>
 std::vector<T> select_items(const std::vector<T>& source, const std::vector<std::size_t>& columns) {
@@ -72,6 +53,20 @@ std::map<int, std::vector<std::vector<Code>>> select_dictionaries(
 }
 
 }  // namespace
+
+std::vector<unsigned char> Dataset::find_constant_columns() const {
+    const std::size_t n_num_f = n_num();
+    const std::size_t n_cat_f = n_cat();
+    std::vector<unsigned char> col_constant(n_num_f + n_cat_f, 0);
+    if (n_ == 0)
+        return col_constant;
+
+    for (std::size_t k = 0; k < n_num_f; ++k)
+        col_constant[k] = column_is_constant(col_num_span(static_cast<int>(k)));
+    for (std::size_t k = 0; k < n_cat_f; ++k)
+        col_constant[n_num_f + k] = column_is_constant(col_cat_span(static_cast<int>(k)));
+    return col_constant;
+}
 
 // Project buffers and metadata through the same ordered column selection.
 void Dataset::project_columns(std::span<const unsigned char> keep) {
