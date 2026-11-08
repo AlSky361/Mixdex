@@ -1,4 +1,4 @@
-#include <cmath>
+#include <algorithm>
 
 #include "common.hpp"
 #include "mixdex/density/hierarchy.hpp"
@@ -7,6 +7,7 @@
 #include "mixdex/scale.hpp"
 #include "mixdex/synthetic/synthetic.hpp"
 #include "mixdex/types.hpp"
+#include "mixdex/utils/numeric_validation.hpp"
 
 namespace mixdex::pybind {
 using namespace mixdex;
@@ -170,33 +171,32 @@ void bind_data(py::module_& m) {
     m.def(
         "quantiles_select",
         [](std::vector<double> values, const std::vector<double>& ps, QuantileMethod method) {
-            if (method != QuantileMethod::InvertedCDF && method != QuantileMethod::MedianUnbiased)
-                throw std::invalid_argument("unknown quantile method");
-            for (double value : values)
-                if (!std::isfinite(value))
-                    throw std::invalid_argument("quantiles_select requires finite values");
-            for (double p : ps)
-                if (!std::isfinite(p) || p < 0 || p > 1)
-                    throw std::invalid_argument("quantile probabilities must be in [0, 1]");
             return quantiles_select(values, ps, method);
         },
         py::arg("values"),
         py::arg("ps"),
         py::arg("method"),
         "Select quantiles from an unsorted copy; inputs are unchanged.");
-    m.def("quantiles",
-          [](py::array_t<double, py::array::c_style | py::array::forcecast> x,
-             std::vector<double> ps,
-             QuantileMethod method) {
-              auto buf = x.request();
-              if (buf.ndim != 1)
-                  throw std::invalid_argument("quantiles: ожидается 1D-массив, получено ndim=" +
-                                              std::to_string(buf.ndim));
-              return quantiles(std::span<const double>(static_cast<const double*>(buf.ptr),
-                                                       static_cast<size_t>(buf.size)),
-                               ps,
-                               method);
-          });
+    m.def(
+        "quantiles",
+        [](py::array_t<double, py::array::c_style | py::array::forcecast> x,
+           std::vector<double> ps,
+           QuantileMethod method) {
+            auto buf = x.request();
+            if (buf.ndim != 1)
+                throw std::invalid_argument("quantiles: ожидается 1D-массив, получено ndim=" +
+                                            std::to_string(buf.ndim));
+            const std::span<const double> values(static_cast<const double*>(buf.ptr),
+                                                 static_cast<std::size_t>(buf.size));
+            detail::require_finite(values, "quantiles requires finite values");
+            if (!std::is_sorted(values.begin(), values.end()))
+                throw std::invalid_argument("quantiles requires sorted values");
+            return quantiles(values, ps, method);
+        },
+        py::arg("values"),
+        py::arg("ps"),
+        py::arg("method"),
+        "Compute quantiles from sorted finite values; validate input in O(n).");
 
     m.def("scale_feature",
           [](py::array_t<double, py::array::c_style | py::array::forcecast> x, NumericType type) {

@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -62,6 +63,45 @@ int main() {
     std::vector<double> ladder(100, 0.0);
     for (int i = 80; i < 100; ++i) ladder[i] = 1.0;
     CHECK(fit_scale_params(ladder, NumericType::Discrete).level == ScaleLevel::Idr);
+
+    for (double bad : {std::numeric_limits<double>::quiet_NaN(),
+                       std::numeric_limits<double>::infinity(),
+                       -std::numeric_limits<double>::infinity()}) {
+        const std::vector<double> values{0.0, bad, 2.0};
+        expect_message(
+            [&] {
+                fit_scale_params(values, NumericType::Continuous);
+            },
+            "finite");
+        expect_message(
+            [&] {
+                scale_feature(values, NumericType::Discrete);
+            },
+            "finite");
+    }
+    expect_message(
+        [&] {
+            fit_scale_params(tiny, static_cast<NumericType>(-1));
+        },
+        "unknown numeric type");
+
+    // A wrapped m * n_num must fail before an empty buffer can be accessed.
+    Dataset two_columns({0.0, 0.0, 1.0, 2.0},
+                        {},
+                        2,
+                        2,
+                        0,
+                        {FeatureType::Numeric, FeatureType::Numeric},
+                        {NumericType::Continuous, NumericType::Continuous},
+                        {"a", "b"});
+    const auto scaler = Scaler::fit(two_columns);
+    CHECK(scaler.transform_rows({}, 0).empty());
+    try {
+        scaler.transform_rows({}, std::numeric_limits<std::size_t>::max() / 2 + 1);
+        CHECK(false);
+    } catch (const std::length_error& error) {
+        CHECK(std::string(error.what()) == "buffer size overflow");
+    }
 
     std::puts("test_scale_validation: OK");
 }

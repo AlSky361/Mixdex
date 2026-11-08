@@ -9,9 +9,10 @@
 
 namespace mixdex::detail {
 
-inline Idx checked_index_size(std::size_t size) {
+inline Idx checked_index_size(std::size_t size,
+                              const char* message = "size exceeds the index range") {
     if (!std::in_range<Idx>(size))
-        throw std::length_error("size exceeds the index range");
+        throw std::length_error(message);
     return static_cast<Idx>(size);
 }
 

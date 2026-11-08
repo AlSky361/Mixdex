@@ -21,7 +21,7 @@ struct ScaleParams {
     ScaleLevel level;
 };
 
-/// Fit a positive scale; reject empty, constant or numerically degenerate input.
+/// Fit a positive scale; reject empty, nonfinite, constant or numerically degenerate input.
 ScaleParams fit_scale_params(std::span<const double> values, NumericType type);
 
 std::vector<double> scale_feature(std::span<const double> values, NumericType type);

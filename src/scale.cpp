@@ -5,7 +5,9 @@
 #include <stdexcept>
 
 #include "mixdex/quantile.hpp"
+#include "mixdex/utils/checked_arithmetic.hpp"
 #include "mixdex/utils/constants.hpp"
+#include "mixdex/utils/numeric_validation.hpp"
 #include "mixdex/utils/parallel.hpp"
 
 using namespace mixdex::constants;
@@ -17,9 +19,8 @@ ScaleParams fit_scale_params(std::span<const double> values, NumericType type) {
         throw std::invalid_argument("scale_feature: пустой признак");
     }
 
+    const QuantileMethod qm = method_for(type);
     std::vector<double> work(values.begin(), values.end());
-
-    QuantileMethod qm = method_for(type);
     // Quantile order: min, q10, q25, median, q75, q90, max.
     const auto qs = quantiles_select(work, kScaleProbs, qm);
     const double median = qs[3];
@@ -86,11 +87,9 @@ Scaler Scaler::fit(const Dataset& data) {
 
 std::vector<double> Scaler::transform_rows(std::span<const double> num, std::size_t m) const {
     const std::size_t d = static_cast<std::size_t>(n_num());
-    if (num.size() != m * d)
+    if (num.size() != detail::checked_size_product(m, d))
         throw std::invalid_argument("Scaler::transform_rows: размер не равен m * n_num");
-    for (double v : num)
-        if (!std::isfinite(v))
-            throw std::invalid_argument("Scaler::transform_rows: NaN или inf во входных значениях");
+    detail::require_finite(num, "Scaler::transform_rows: NaN или inf во входных значениях");
 
     std::vector<double> out(num.size());
     for (std::size_t i = 0; i < m; ++i)

@@ -177,9 +177,13 @@ def test_scale_feature_accepts_noncontiguous_arrays(sdata):
     a = np.array(mixdex.scale_feature(strided, mixdex.NumericType.Continuous))
     b = np.array(mixdex.scale_feature(np.ascontiguousarray(strided), mixdex.NumericType.Continuous))
     assert np.allclose(a, b)
-    q1 = mixdex.quantiles(strided, [0.25, 0.5], mixdex.QuantileMethod.MedianUnbiased)
-    q2 = mixdex.quantiles(np.ascontiguousarray(strided), [0.25, 0.5], mixdex.QuantileMethod.MedianUnbiased)
+    sorted_strided = np.sort(Xn, axis=0)[:, 1]
+    assert not sorted_strided.flags.c_contiguous
+    q1 = mixdex.quantiles(sorted_strided, [0.25, 0.5], mixdex.QuantileMethod.MedianUnbiased)
+    q2 = mixdex.quantiles(np.ascontiguousarray(sorted_strided), [0.25, 0.5],
+                         mixdex.QuantileMethod.MedianUnbiased)
     assert np.allclose(q1, q2)
+    assert np.allclose(q1, np.quantile(sorted_strided, [0.25, 0.5], method="median_unbiased"))
 
 
 def test_transform_rows_matches_transform_of_dataset(sdata):
