@@ -11,8 +11,18 @@
 
 #include "mixdex/utils/fm_heap.hpp"
 
+#if defined(__SANITIZE_THREAD__)
+#define MIXDEX_TEST_TSAN
+#elif defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#define MIXDEX_TEST_TSAN
+#endif
+#endif
+
 namespace {
+#ifndef MIXDEX_TEST_TSAN
 thread_local int allocations_before_failure = -1;
+#endif
 
 void check(bool condition) {
     if (!condition) {
@@ -74,6 +84,22 @@ void check_selection() {
     check(tied.sorted() == std::vector<Entry>{{1, 5}, {8, 5}});
 }
 
+void check_storage_contracts() {
+    mixdex::FixedMaxHeap heap(2);
+    heap.try_insert(1, 0);
+    heap.try_insert(2, 1);
+    expect<std::length_error>([&] {
+        heap.reset(std::numeric_limits<std::size_t>::max());
+    });
+    check(heap.size() == 2 && heap.full() && heap.max_distance() == 2);
+    heap.try_insert(0, 2);
+    check(heap.sorted() == std::vector<Entry>{{2, 0}, {0, 1}});
+    expect<std::length_error>([] {
+        mixdex::FixedMaxHeap oversized(std::numeric_limits<std::size_t>::max());
+    });
+}
+
+#ifndef MIXDEX_TEST_TSAN
 void check_allocation_failures() {
     for (int fail_after : {0, 1}) {
         allocations_before_failure = fail_after;
@@ -98,19 +124,6 @@ void check_allocation_failures() {
         check(heap.size() == 0 && !heap.full());
     }
 
-    mixdex::FixedMaxHeap heap(2);
-    heap.try_insert(1, 0);
-    heap.try_insert(2, 1);
-    expect<std::length_error>([&] {
-        heap.reset(std::numeric_limits<std::size_t>::max());
-    });
-    check(heap.size() == 2 && heap.full() && heap.max_distance() == 2);
-    heap.try_insert(0, 2);
-    check(heap.sorted() == std::vector<Entry>{{2, 0}, {0, 1}});
-    expect<std::length_error>([] {
-        mixdex::FixedMaxHeap oversized(std::numeric_limits<std::size_t>::max());
-    });
-
     mixdex::FixedMaxHeap growing(4);
     growing.reset(5);
     allocations_before_failure = 0;
@@ -119,9 +132,12 @@ void check_allocation_failures() {
     allocations_before_failure = -1;
     check(growing.size() == 0 && !growing.full());
 }
+#endif
 }  // namespace
 
+#ifndef MIXDEX_TEST_TSAN
 // Fail either vector allocation without requesting excessive physical memory.
+// TSan provides its own new/delete interceptors.
 void* operator new(std::size_t bytes) {
     if (allocations_before_failure == 0) {
         allocations_before_failure = -1;
@@ -141,12 +157,18 @@ void operator delete(void* p) noexcept {
 void operator delete(void* p, std::size_t) noexcept {
     std::free(p);
 }
+#endif
 
 static_assert(!noexcept(mixdex::FixedMaxHeap(1)));
 
 int main() {
     check_selection();
+    check_storage_contracts();
+#ifndef MIXDEX_TEST_TSAN
     check_allocation_failures();
     std::puts("test_fixed_max_heap: OK");
+#else
+    std::puts("test_fixed_max_heap: OK (allocation injection disabled under TSan)");
+#endif
     return 0;
 }
