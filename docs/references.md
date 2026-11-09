@@ -124,6 +124,25 @@ The former `gower_*` name is historical; the current composite is defined in
 README.md and is not a claim to reproduce all missing-data conventions of Gower's
 original coefficient.
 
+<a id="supporting-structures"></a>
+
+## Supporting structures
+
+- Robert Sedgewick; Kevin Wayne. *Algorithms, 4th Edition*, section 2.4,
+  [Priority Queues](https://algs4.cs.princeton.edu/24pq/).
+  Reference for binary max-heaps and linear-time bottom-up heap construction.
+  Mixdex collects the initial k candidates before building the heap, then
+  replaces its root when a better (distance, index) key arrives.
+- Robert E. Tarjan; Jan van Leeuwen (1984). *Worst-Case Analysis of Set Union
+  Algorithms*. Journal of the ACM 31(2), 245–281.
+  [Author publication record](https://collaborate.princeton.edu/en/publications/worst-case-analysis-of-set-union-algorithms/),
+  [DOI](https://doi.org/10.1145/62.2160).
+  Union by size with path splitting has inverse-Ackermann amortized bounds;
+  see also [Kevin Wayne's Union-Find lecture](https://www.cs.princeton.edu/~wayne/kleinberg-tardos/pdf/UnionFind.pdf).
+  This applies to the compressing operations. Mixdex's read-only `find_root`
+  follows parent links without compression and has O(log n) worst-case cost,
+  or O(1) after `flatten` until another merge changes the parent paths.
+
 ## Row hashing
 
 - David Stafford (2011). *Better Bit Mixing - Improving on MurmurHash3's 64-bit

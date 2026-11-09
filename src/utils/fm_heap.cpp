@@ -1,7 +1,7 @@
 #include "mixdex/utils/fm_heap.hpp"
 
 #include <algorithm>
-#include <limits>
+#include <cassert>
 #include <numeric>
 
 #include "mixdex/utils/constants.hpp"
@@ -14,9 +14,18 @@ namespace {
 inline bool less_key(double d1, int i1, double d2, int i2) noexcept {
     return d1 < d2 || (d1 == d2 && i1 < i2);
 }
+
+template <class T>
+void reserve_growth(std::vector<T>& buffer, std::size_t required) {
+    if (required <= buffer.capacity())
+        return;
+    const auto limit = buffer.max_size();
+    const auto grown = buffer.capacity() <= limit / 2 ? 2 * buffer.capacity() : limit;
+    buffer.reserve(std::max(required, grown));
+}
 }  // namespace
 
-FixedMaxHeap::FixedMaxHeap(std::size_t capacity) noexcept :
+FixedMaxHeap::FixedMaxHeap(std::size_t capacity) :
     capacity_(capacity), size_(0), distances_(capacity), indices_(capacity) {
 }
 
@@ -45,6 +54,7 @@ void FixedMaxHeap::sift_down(std::size_t i) noexcept {
 }
 
 void FixedMaxHeap::try_insert(double distance, int index) {
+    assert(distance >= 0.0 && index >= 0);
     if (capacity_ == 0)
         return;
 
@@ -75,14 +85,17 @@ bool FixedMaxHeap::full() const noexcept {
 }
 
 double FixedMaxHeap::max_distance() const noexcept {
-    return size_ == 0 ? kInf : distances_[0];
+    return size_ > 0 && full() ? distances_[0] : kInf;
 }
 
 void FixedMaxHeap::reset(std::size_t capacity) {
-    capacity_ = capacity;
-    size_ = 0;
+    // Reserve both buffers before resizing; scalar initialization cannot throw afterwards.
+    reserve_growth(distances_, capacity);
+    reserve_growth(indices_, capacity);
     distances_.resize(capacity);
     indices_.resize(capacity);
+    capacity_ = capacity;
+    size_ = 0;
 }
 
 double FixedMaxHeap::farthest() const noexcept {

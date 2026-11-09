@@ -610,6 +610,27 @@ every algorithm or to fitting a Scaler.
 Only `DatasetPolicy::Strict` and `DatasetPolicy::Clean` are accepted. Other
 underlying enum values throw `std::invalid_argument` before cleanup or warnings.
 
+Low-level supporting containers have explicit preconditions:
+
+- `FixedMaxHeap` retains at most its capacity, ordered by (distance, index).
+  `max_distance` is a pruning cutoff: positive infinity until full, and also
+  when empty. `farthest` returns the actual farthest retained distance, or zero
+  when empty. Insertions require a nonnegative distance (positive infinity is
+  allowed, NaN is not) and a nonnegative index; Debug builds assert this.
+  Construction can throw allocation/length exceptions. If `reset` fails to
+  allocate, retained entries and logical capacity are unchanged; an internal
+  buffer may already have reserved more space. Successful reset clears entries
+  while reusing storage; geometric buffer growth avoids allocating at every
+  one-element capacity increase. Top-k selection takes O(k) initial heap construction
+  and O(log k) per accepted replacement, with O(k) storage.
+- `UF(n)` accepts zero and rejects negative n with `std::invalid_argument`
+  before constructing its buffers. Element indices must be in [0,n); Debug
+  builds assert this, while Release keeps the unchecked `noexcept` fast path.
+  `find_compress`, `same`, `unite` and `flatten` modify parent links.
+  Concurrent `find_root` calls require that no thread modifies the structure.
+  Union by size and path splitting use O(n) storage; the amortized operation
+  bound is described in the [method references](references.md#supporting-structures).
+
 Dataset row and feature counts must fit the signed index range. Buffer products,
 edge counts and cluster IDs have separate limits; a valid row count alone does
 not establish that a derived structure fits. Checked narrowing throws

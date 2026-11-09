@@ -1,14 +1,23 @@
 #include "mixdex/utils/uf.hpp"
 
 #include <numeric>
+#include <stdexcept>
 
 namespace mixdex {
+namespace {
+std::size_t checked_size(int n) {
+    if (n < 0)
+        throw std::invalid_argument("UF: size must be nonnegative");
+    return static_cast<std::size_t>(n);
+}
+}  // namespace
 
-UF::UF(int n) : parent_(n), size_(n, 1), n_comp_(n) {
+UF::UF(int n) : parent_(checked_size(n)), size_(parent_.size(), 1), n_comp_(n) {
     std::iota(parent_.begin(), parent_.end(), 0);
 }
 
 int UF::find_compress(int x) noexcept {
+    assert_index(x);
     int p = parent_[x];
     while (p != x) {
         int gp = parent_[p];
@@ -21,6 +30,7 @@ int UF::find_compress(int x) noexcept {
 }
 
 int UF::find_root(int x) const noexcept {
+    assert_index(x);
     while (parent_[x] != x) x = parent_[x];
     return x;
 }
