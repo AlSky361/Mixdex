@@ -12,13 +12,13 @@ def _cat0(n):
 
 def test_exact_duplicate_rejected():
     X = np.array([[1.0, 2.0], [3.0, 4.0], [1.0, 2.0]])
-    with pytest.raises(mixdex.InvalidArgument, match="дубликаты.*строки 0 и 2"):
+    with pytest.raises(mixdex.InvalidArgument, match="duplicate.*rows 0 and 2"):
         make(X, _cat0(3))
 
 
 def test_negative_zero_is_duplicate_of_zero():
     X = np.array([[0.0, 5.0], [1.0, 1.0], [-0.0, 5.0]])
-    with pytest.raises(mixdex.InvalidArgument, match="дубликаты"):
+    with pytest.raises(mixdex.InvalidArgument, match="duplicate"):
         make(X, _cat0(3))
 
 

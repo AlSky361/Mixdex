@@ -10,26 +10,26 @@ namespace mixdex {
 void Dataset::check_limits() const {
     constexpr std::size_t kMax = static_cast<std::size_t>(std::numeric_limits<int>::max());
     if (n_ > kMax)
-        throw std::length_error("Dataset: число строк превышает INT_MAX");
+        throw std::length_error("Dataset: row count exceeds INT_MAX");
     if (n_num_ > kMax || n_cat_ > kMax || n_num_ + n_cat_ > kMax)
-        throw std::length_error("Dataset: число признаков превышает INT_MAX");
+        throw std::length_error("Dataset: feature count exceeds INT_MAX");
 }
 
 void Dataset::check_structure() const {
     if (feat_types_.size() != n_num_ + n_cat_ || feat_names_.size() != feat_types_.size()) {
-        throw std::invalid_argument("Dataset: несоответствие размера feat_types");
+        throw std::invalid_argument("Dataset: feature metadata size mismatch");
     }
 
     if (num_data_.size() != n_ * n_num_) {
-        throw std::invalid_argument("Dataset: несоответствие размера num_data");
+        throw std::invalid_argument("Dataset: num_data size mismatch");
     }
 
     if (cat_data_.size() != n_ * n_cat_) {
-        throw std::invalid_argument("Dataset: несоответствие размера cat_data");
+        throw std::invalid_argument("Dataset: cat_data size mismatch");
     }
 
     if (num_types_.size() != n_num_) {
-        throw std::invalid_argument("Dataset: несоответствие размера num_types");
+        throw std::invalid_argument("Dataset: num_types size mismatch");
     }
 
     for (std::size_t k = 0; k < feat_types_.size(); ++k) {
@@ -100,13 +100,13 @@ void Dataset::scan_values(std::vector<Code>* cat_max,
     if (policy == DatasetPolicy::Strict) {
         std::string msg = "Dataset:";
         if (bad_num > 0)
-            msg += " NaN или inf в числовых значениях: " + std::to_string(bad_num) +
-                   " шт., первое — строка " + std::to_string(first_num_row) +
-                   ", числовой признак " + std::to_string(first_num_col) + ";";
+            msg += " NaN or inf in numeric values: count=" + std::to_string(bad_num) +
+                   ", first at row " + std::to_string(first_num_row) + ", numeric feature " +
+                   std::to_string(first_num_col) + ";";
         if (bad_cat > 0)
-            msg += " отрицательные коды категорий: " + std::to_string(bad_cat) +
-                   " шт., первый — строка " + std::to_string(first_cat_row) +
-                   ", категориальный признак " + std::to_string(first_cat_col) + ";";
+            msg += " negative category codes: count=" + std::to_string(bad_cat) +
+                   ", first at row " + std::to_string(first_cat_row) + ", categorical feature " +
+                   std::to_string(first_cat_col) + ";";
         throw std::invalid_argument(msg);
     }
 }
@@ -135,14 +135,13 @@ void Dataset::validate_all(std::vector<Code>* cat_max,
 
     if (!report_.empty() && on_warning) {
         if (report_.rows_dropped_missing > 0)
-            on_warning("исключено строк с пропуском: " +
+            on_warning("rows dropped for missing values: " +
                        std::to_string(report_.rows_dropped_missing));
         if (report_.rows_dropped_duplicate > 0)
-            on_warning("исключено строк-дубликатов: " +
-                       std::to_string(report_.rows_dropped_duplicate));
+            on_warning("duplicate rows dropped: " + std::to_string(report_.rows_dropped_duplicate));
         for (std::size_t j = 0; j < report_.columns_dropped_constant_idx.size(); ++j) {
-            on_warning("исключён константный признак '" + report_.columns_dropped_constant_name[j] +
-                       "' (исходный индекс " +
+            on_warning("dropped constant feature '" + report_.columns_dropped_constant_name[j] +
+                       "' (original index " +
                        std::to_string(report_.columns_dropped_constant_idx[j]) + ")");
         }
     }
@@ -162,7 +161,7 @@ void Dataset::validate() const {
     check_constant_columns();
 
     if (categories_count_.size() != n_cat_) {
-        throw std::invalid_argument("Dataset: несоответствие n_cat_");
+        throw std::invalid_argument("Dataset: category count metadata size mismatch");
     }
 }
 

@@ -31,12 +31,12 @@ Dataset::Dataset(const std::vector<NumFeature>& num_features,
     check_limits();
 
     if (feat_names.size() != n_num_ + n_cat_) {
-        throw std::invalid_argument("Dataset: несоответствующее количество признаков");
+        throw std::invalid_argument("Dataset: feature name count mismatch");
     }
 
     if (n_num_ > 0 && n_cat_ > 0 && num_features[0].size() != cat_features[0].size()) {
         throw std::invalid_argument(
-            "Dataset: признаки числового и категориального типов имеют разное количество строк");
+            "Dataset: numeric and categorical features have different row counts");
     }
 
     feat_types_.reserve(n_num_ + n_cat_);
@@ -48,7 +48,7 @@ Dataset::Dataset(const std::vector<NumFeature>& num_features,
         const auto& f = num_features[k];
 
         if (f.size() != n_) {
-            throw std::invalid_argument("Dataset: несоответствующее количество числовых значений");
+            throw std::invalid_argument("Dataset: numeric feature row count mismatch");
         }
 
         feat_types_.push_back(FeatureType::Numeric);
@@ -65,8 +65,7 @@ Dataset::Dataset(const std::vector<NumFeature>& num_features,
         const auto& f = cat_features[k];
 
         if (f.size() != n_) {
-            throw std::invalid_argument(
-                "Dataset: несоответствующее количество категориальных значений");
+            throw std::invalid_argument("Dataset: categorical feature row count mismatch");
         }
 
         feat_types_.push_back(FeatureType::Categorical);

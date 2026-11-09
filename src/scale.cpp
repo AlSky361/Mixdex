@@ -28,7 +28,7 @@ double scaled_value(double value, double median, double scale) {
 
 ScaleParams fit_scale_params(std::span<const double> values, NumericType type) {
     if (values.empty()) {
-        throw std::invalid_argument("scale_feature: пустой признак");
+        throw std::invalid_argument("scale_feature: empty feature");
     }
 
     const QuantileMethod qm = method_for(type);
@@ -55,13 +55,13 @@ ScaleParams fit_scale_params(std::span<const double> values, NumericType type) {
     // Dataset rejects exact constants; nonconstant widths can still be numerically unusable.
     if (qs[0] == qs[6]) {
         throw std::invalid_argument(
-            "fit_scale_params: признак константен (min == max); "
-            "исключите его перед масштабированием");
+            "fit_scale_params: constant feature (min == max); "
+            "remove it before scaling");
     }
     throw std::invalid_argument(
-        "fit_scale_params: численно вырожденный масштаб: ширины IQR, IDR и max-min "
-        "не превышают относительный допуск kScaleRelEps * max(abs(min), abs(max)); "
-        "это не означает точную константность признака");
+        "fit_scale_params: numerically degenerate scale: IQR, IDR and max-min widths "
+        "do not exceed kScaleRelEps * max(abs(min), abs(max)); "
+        "this does not imply an exactly constant feature");
 }
 
 std::vector<double> scale_feature(std::span<const double> values, NumericType type) {
@@ -78,7 +78,7 @@ Scaler Scaler::fit(const Dataset& data) {
     const int n = data.n_rows();
     const int n_num = data.n_num();
     if (n == 0)
-        throw std::invalid_argument("Scaler::fit: набор без строк");
+        throw std::invalid_argument("Scaler::fit: dataset has no rows");
 
     Scaler s;
     s.median_.resize(n_num);
@@ -102,8 +102,8 @@ Scaler Scaler::fit(const Dataset& data) {
 std::vector<double> Scaler::transform_rows(std::span<const double> num, std::size_t m) const {
     const std::size_t d = static_cast<std::size_t>(n_num());
     if (num.size() != detail::checked_size_product(m, d))
-        throw std::invalid_argument("Scaler::transform_rows: размер не равен m * n_num");
-    detail::require_finite(num, "Scaler::transform_rows: NaN или inf во входных значениях");
+        throw std::invalid_argument("Scaler::transform_rows: size must equal m * n_num");
+    detail::require_finite(num, "Scaler::transform_rows: input contains NaN or inf");
 
     std::vector<double> out(num.size());
     for (std::size_t i = 0; i < m; ++i)
@@ -118,7 +118,7 @@ Dataset Scaler::transform(const Dataset& data) const {
     int n_cat = data.n_cat();
 
     if (n_num != this->n_num())
-        throw std::invalid_argument("Scaler::transform: число числовых признаков не совпадает");
+        throw std::invalid_argument("Scaler::transform: numeric feature count mismatch");
 
     if (n == 0)
         return data;

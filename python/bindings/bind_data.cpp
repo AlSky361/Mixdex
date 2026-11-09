@@ -184,7 +184,7 @@ void bind_data(py::module_& m) {
            QuantileMethod method) {
             auto buf = x.request();
             if (buf.ndim != 1)
-                throw std::invalid_argument("quantiles: ожидается 1D-массив, получено ndim=" +
+                throw std::invalid_argument("quantiles: expected a 1D array, got ndim=" +
                                             std::to_string(buf.ndim));
             const std::span<const double> values(static_cast<const double*>(buf.ptr),
                                                  static_cast<std::size_t>(buf.size));
@@ -202,7 +202,7 @@ void bind_data(py::module_& m) {
           [](py::array_t<double, py::array::c_style | py::array::forcecast> x, NumericType type) {
               auto buf = x.request();
               if (buf.ndim != 1)
-                  throw std::invalid_argument("scale_feature: ожидается 1D-массив, получено ndim=" +
+                  throw std::invalid_argument("scale_feature: expected a 1D array, got ndim=" +
                                               std::to_string(buf.ndim));
               std::span<const double> span(static_cast<const double*>(buf.ptr),
                                            static_cast<size_t>(buf.size));

@@ -46,12 +46,12 @@ int main() {
         [&] {
             Scaler::fit(d);
         },
-        "численно вырожденный масштаб");
+        "numerically degenerate scale");
     expect_message(
         [&] {
             scale_feature(close, NumericType::Continuous);
         },
-        "численно вырожденный масштаб");
+        "numerically degenerate scale");
 
     // Small absolute values alone do not imply degeneracy.
     const std::vector<double> tiny{0.0, 1e-20};

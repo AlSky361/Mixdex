@@ -42,8 +42,8 @@ DensityHierarchy::DensityHierarchy(const Dataset& data,
             auto* bt = dynamic_cast<BallTree*>(search.get());
             if (!bt)
                 throw std::invalid_argument(
-                    "hdbscan Exact: точный режим строится через DTBoruvka и требует "
-                    "SearchMethod::BallTree; передан другой метод поиска соседей.");
+                    "hdbscan Exact: DTBoruvka requires "
+                    "SearchMethod::BallTree; got a different neighbor search method.");
 
             mst_ = dual_tree_boruvka(*bt, deterministic_mst);
             break;
@@ -59,30 +59,29 @@ DensityHierarchy::DensityHierarchy(const Dataset& data,
                     throw std::invalid_argument(
                         "hdbscan Approximate: sqrt(n)=" + std::to_string(k_max) +
                         " < m_pts=" + std::to_string(m_pts) +
-                        ", автоматический выбор k_opt невозможен. Используйте Exact.");
+                        "; automatic k_opt selection is unavailable. Use Exact.");
 
                 search->set_core_dist(core_);
                 std::optional<AutoK> sel =
                     auto_select_k(*search, m_pts, k_max, constants::kApproxKMargin);
                 if (!sel)
                     throw std::invalid_argument(
-                        "hdbscan Approximate: kNN-граф несвязен при всех k <= sqrt(n)=" +
+                        "hdbscan Approximate: kNN graph is disconnected for every k <= sqrt(n)=" +
                         std::to_string(k_max) +
-                        " (автоматический выбор k_opt не нашёл связный граф). Для точного MST "
-                        "используйте Exact.");
+                        " (automatic k_opt selection found no connected graph). For an exact MST, "
+                        "use Exact.");
                 g_mr = graph_from_knn_lists(sel->lists, sel->k_opt);
             } else {
                 if (k_opt < m_pts)
                     throw std::invalid_argument(
                         "hdbscan Approximate: k_opt=" + std::to_string(k_opt) +
                         " < m_pts=" + std::to_string(m_pts) +
-                        ". k_opt должен быть в диапазоне [m_pts, sqrt(n)=" + std::to_string(k_max) +
-                        "]");
+                        ". k_opt must be in [m_pts, sqrt(n)=" + std::to_string(k_max) + "]");
 
                 if (k_opt > k_max)
                     throw std::invalid_argument(
-                        "hdbscan Approximate: k_opt=" + std::to_string(k_opt) + " > sqrt(n)=" +
-                        std::to_string(k_max) + ". Для точного MST используйте Exact.");
+                        "hdbscan Approximate: k_opt=" + std::to_string(k_opt) +
+                        " > sqrt(n)=" + std::to_string(k_max) + ". For an exact MST, use Exact.");
 
                 search->set_core_dist(core_);
                 g_mr = build_knn_graph(*search, k_opt);
@@ -92,12 +91,12 @@ DensityHierarchy::DensityHierarchy(const Dataset& data,
                     const int n_comp =
                         comp.empty() ? 0 : *std::max_element(comp.begin(), comp.end()) + 1;
                     throw std::invalid_argument(
-                        "hdbscan Approximate: kNN-граф при k_opt=" + std::to_string(k_opt) +
-                        " несвязен (компонент: " + std::to_string(n_comp) +
-                        "), MST по нему не является деревом. Увеличьте k_opt (допустимо не больше "
+                        "hdbscan Approximate: kNN graph at k_opt=" + std::to_string(k_opt) +
+                        " is disconnected (components: " + std::to_string(n_comp) +
+                        "); its spanning forest is not a tree. Increase k_opt (at most "
                         "sqrt(n)=" +
                         std::to_string(k_max) +
-                        "), не указывайте k_opt для автоматического выбора или используйте Exact.");
+                        "), omit k_opt for automatic selection, or use Exact.");
                 }
             }
 

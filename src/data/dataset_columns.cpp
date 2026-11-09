@@ -106,9 +106,9 @@ void Dataset::check_constant_columns() const {
     const auto constant = find_constant_columns();
     for (std::size_t k = 0; k < constant.size(); ++k)
         if (constant[k])
-            throw std::invalid_argument("Dataset: константный признак '" + feat_names_[k] +
-                                        "' (индекс " + std::to_string(k) +
-                                        "); режим Strict не допускает константные признаки");
+            throw std::invalid_argument("Dataset: constant feature '" + feat_names_[k] +
+                                        "' (index " + std::to_string(k) +
+                                        "); Strict policy rejects constant features");
 }
 
 void Dataset::drop_constant_columns(DatasetPolicy policy) {

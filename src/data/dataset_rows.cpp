@@ -97,9 +97,9 @@ void Dataset::check_duplicates(DatasetPolicy policy,
                     const std::size_t lo = std::min(i, j), hi = std::max(i, j);
                     if (policy == DatasetPolicy::Strict) {
                         throw std::invalid_argument(
-                            "Dataset: объекты-дубликаты (все координаты равны): строки " +
-                            std::to_string(lo) + " и " + std::to_string(hi) +
-                            "; режим Strict не допускает повторяющиеся строки");
+                            "Dataset: duplicate objects (all coordinates equal): rows " +
+                            std::to_string(lo) + " and " + std::to_string(hi) +
+                            "; Strict policy rejects duplicate rows");
                     }
                     // Keep the first original row and mark later duplicates.
                     if (rows_duplicate)

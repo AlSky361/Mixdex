@@ -29,7 +29,7 @@ def test_nonfinite_numeric_rejected(bad):
     rng = np.random.default_rng(0)
     Xn = rng.normal(size=(30, 3))
     Xn[7, 2] = bad
-    with pytest.raises(mixdex.InvalidArgument, match="строка 7, числовой признак 2"):
+    with pytest.raises(mixdex.InvalidArgument, match="row 7, numeric feature 2"):
         mixdex.Dataset(*_feats(Xn, np.zeros((30, 0), dtype=np.int32)))
 
 
@@ -37,7 +37,7 @@ def test_negative_category_code_rejected():
     rng = np.random.default_rng(0)
     Xc = rng.integers(0, 3, (30, 2)).astype(np.int32)
     Xc[11, 1] = -1
-    with pytest.raises(mixdex.InvalidArgument, match="строка 11, категориальный признак 1"):
+    with pytest.raises(mixdex.InvalidArgument, match="row 11, categorical feature 1"):
         mixdex.Dataset(*_feats(np.zeros((30, 0)), Xc))
 
 
@@ -51,8 +51,10 @@ def test_single_pass_reports_all_violations_at_once():
     with pytest.raises(mixdex.InvalidArgument) as e:
         mixdex.Dataset(*_feats(Xn, Xc))
     msg = str(e.value)
-    assert "2 шт." in msg and "строка 3, числовой признак 0" in msg  # Both NaN and infinity are reported.
-    assert "1 шт." in msg and "строка 5" in msg                       # The category error is also reported.
+    assert ("numeric values: count=2" in msg
+            and "row 3, numeric feature 0" in msg)  # Both NaN and infinity are reported.
+    assert ("category codes: count=1" in msg
+            and "row 5" in msg)                    # The category error is also reported.
 
 
 def test_flat_constructor_also_validates():
@@ -149,14 +151,14 @@ def test_dataset_rejects_constant_feature_strict():
     n = 200
     Xn = np.column_stack([rng.normal(0, 1, n), np.full(n, 3.0)])
     Xc = rng.integers(0, 3, (n, 1)).astype(np.int32)
-    with pytest.raises(mixdex.InvalidArgument, match="константн"):
+    with pytest.raises(mixdex.InvalidArgument, match="constant"):
         make(Xn, Xc)
 
 
 def test_fit_scale_params_rejects_constant_column():
     """Scaling must explicitly reject a constant that bypasses Dataset validation."""
     col = np.full(50, 3.0)
-    with pytest.raises(mixdex.InvalidArgument, match="констант"):
+    with pytest.raises(mixdex.InvalidArgument, match="constant"):
         mixdex.scale_feature(col, mixdex.NumericType.Continuous)
 
 
@@ -165,9 +167,9 @@ def test_scale_distinguishes_numerical_degeneracy_from_constant_column():
     col = np.array([1.0, np.nextafter(1.0, 2.0)])
     assert col[0] != col[1]
     ds = make(col.reshape(-1, 1), np.zeros((2, 0), dtype=np.int32))
-    with pytest.raises(mixdex.InvalidArgument, match="численно вырожденный масштаб"):
+    with pytest.raises(mixdex.InvalidArgument, match="numerically degenerate scale"):
         mixdex.Scaler.fit(ds)
-    with pytest.raises(mixdex.InvalidArgument, match="численно вырожденный масштаб"):
+    with pytest.raises(mixdex.InvalidArgument, match="numerically degenerate scale"):
         mixdex.scale_feature(col, mixdex.NumericType.Continuous)
 
 

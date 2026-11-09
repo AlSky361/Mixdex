@@ -581,6 +581,8 @@ underflow guarantee. See [range checks](distance-bounds.md#floating-point-range)
 
 ## Numeric types and errors
 
+Library-authored comments, error messages and warnings use English.
+
 Mixdex uses `std::int32_t` for `Idx` and `Code`, `std::uint64_t` for
 `Count`, and `std::size_t` for buffer sizes. Supported targets require a
 32-bit `int` because several C++ and Python interfaces expose `int` directly.

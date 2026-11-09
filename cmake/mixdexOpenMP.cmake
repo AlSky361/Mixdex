@@ -12,7 +12,8 @@
             endforeach()
         endif()
         if(NOT LIBOMP_PREFIX)
-            message(FATAL_ERROR "libomp не найден: brew install libomp, либо -DLIBOMP_PREFIX=<путь>, либо -DUSE_OPENMP=OFF")
+            message(FATAL_ERROR
+                "libomp not found: run brew install libomp, set -DLIBOMP_PREFIX=<path>, or use -DUSE_OPENMP=OFF")
         endif()
         set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp -I${LIBOMP_PREFIX}/include")
         set(OpenMP_CXX_LIB_NAMES "omp")

@@ -8,7 +8,7 @@ namespace mixdex {
 
 void NodeCatPresent::build(const Dataset& data, const std::vector<int>& idx, int low, int high) {
     if (low < 0 || high < 0 || static_cast<std::size_t>(high) > idx.size() || low > high) {
-        throw std::invalid_argument("NodeCatPresent::build: некорректный диапазон индексов");
+        throw std::invalid_argument("NodeCatPresent::build: invalid index range");
     }
 
     const int n_cat = static_cast<int>(data.n_cat());

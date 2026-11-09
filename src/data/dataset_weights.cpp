@@ -13,12 +13,11 @@ double validated_weight_sum(const std::vector<double>& weights) {
     for (double w : weights) {
         if (!std::isfinite(w) || !(w >= 0.0))
             throw std::invalid_argument(
-                "Dataset::set_weights: вес w_k должен быть конечным и >= 0");
+                "Dataset::set_weights: each weight must be finite and >= 0");
         sum += w;
     }
     if (!std::isfinite(sum) || !(sum > 0.0))
-        throw std::invalid_argument(
-            "Dataset::set_weights: W = sum(w_k) должно быть конечным и > 0");
+        throw std::invalid_argument("Dataset::set_weights: W = sum(w_k) must be finite and > 0");
     if (!std::isfinite(1.0 / sum))
         throw std::invalid_argument("weight total has no finite reciprocal; rescale weights");
     return sum;
@@ -28,7 +27,7 @@ double validated_weight_sum(const std::vector<double>& weights) {
 
 void Dataset::set_weights(std::vector<double> weights) {
     if (weights.size() != n_num_ + n_cat_)
-        throw std::invalid_argument("Dataset::set_weights: несоответствие размера весов n_cols");
+        throw std::invalid_argument("Dataset::set_weights: weights size must equal n_cols");
     const double sum = validated_weight_sum(weights);
     const bool any_zero = std::any_of(weights.begin(), weights.end(), [](double w) {
         return w == 0.0;
